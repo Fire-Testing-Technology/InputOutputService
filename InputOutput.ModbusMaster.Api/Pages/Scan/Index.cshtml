@@ -1,0 +1,61 @@
+@page
+@model InputOutput.ModbusMaster.Api.Pages.Scan.IndexModel
+@{
+    ViewData["Title"] = "Scan";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h1 class="mb-1">Scan bus</h1>
+        <div class="text-muted">Probe Modbus unit IDs on @Model.PortName (@Model.ScanFrom–@Model.ScanTo).</div>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <button id="start-scan" class="btn btn-primary" type="button" @(Model.IsScanning ? "disabled" : null)>
+            @(Model.IsScanning ? "Scan running…" : "Start scan")
+        </button>
+        <a class="btn btn-outline-secondary" asp-page="/Devices/Index">View devices</a>
+    </div>
+</div>
+
+@if (!Model.IsConnected)
+{
+    <div class="alert alert-warning">Not connected — scan will open @Model.PortName.</div>
+}
+
+<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        <div class="scan-progress mb-2" aria-hidden="true"><span id="scan-progress"></span></div>
+        <p id="scan-status" class="text-muted mb-0">Idle.</p>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-3">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-striped align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Unit</th>
+                        <th>Detected type</th>
+                        <th>Detail</th>
+                        <th>Registered</th>
+                    </tr>
+                </thead>
+                <tbody id="scan-results">
+                    <tr><td colspan="4" class="text-muted">Discovered units will appear here.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <h5 class="card-title">Event log</h5>
+        <div id="scan-log" class="scan-log"></div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="~/js/scan.js" asp-append-version="true"></script>
+}

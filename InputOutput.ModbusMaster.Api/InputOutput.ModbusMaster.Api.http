@@ -1,0 +1,54 @@
+@InputOutput.ModbusMaster.Api_HostAddress = https://localhost:7015
+
+GET {{InputOutput.ModbusMaster.Api_HostAddress}}/api/units
+Accept: application/json
+
+###
+
+GET {{InputOutput.ModbusMaster.Api_HostAddress}}/api/units/1/channels
+Accept: application/json
+
+###
+
+GET {{InputOutput.ModbusMaster.Api_HostAddress}}/api/units/1/channels/1
+Accept: application/json
+
+###
+
+PUT {{InputOutput.ModbusMaster.Api_HostAddress}}/api/units/1/channels/1
+Content-Type: application/json
+Accept: application/json
+
+{
+  "value": 5.0,
+  "flush": true
+}
+
+###
+
+PUT {{InputOutput.ModbusMaster.Api_HostAddress}}/api/units/1/channels
+Content-Type: application/json
+Accept: application/json
+
+{
+  "flush": true,
+  "channels": [
+    { "channel": 1, "value": 5.0 },
+    { "channel": 2, "raw": 2500 }
+  ]
+}
+
+###
+
+POST {{InputOutput.ModbusMaster.Api_HostAddress}}/api/scan/start
+Accept: application/json
+
+###
+
+GET {{InputOutput.ModbusMaster.Api_HostAddress}}/api/scan/progress?after=0
+Accept: application/json
+
+###
+
+GET {{InputOutput.ModbusMaster.Api_HostAddress}}/api/scan/status
+Accept: application/json

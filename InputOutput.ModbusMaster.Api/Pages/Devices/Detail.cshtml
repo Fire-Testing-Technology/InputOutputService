@@ -1,0 +1,88 @@
+@page "{unitId:int}"
+@model InputOutput.ModbusMaster.Api.Pages.Devices.DetailModel
+@{
+    ViewData["Title"] = Model.Unit is null ? $"Unit {Model.UnitId}" : (Model.Unit.Name ?? $"Unit {Model.UnitId}");
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h1 class="mb-1">@(Model.Unit?.Name ?? $"Unit {Model.UnitId}")</h1>
+        <div class="text-muted">
+            @if (Model.Unit is not null)
+            {
+                <span class="mono">Unit @Model.Unit.UnitId</span>
+                <text> · @Model.Unit.Type</text>
+                if (!string.IsNullOrWhiteSpace(Model.Unit.Identifier))
+                {
+                    <text> · </text><span class="mono">@Model.Unit.Identifier</span>
+                }
+            }
+            else
+            {
+                <text>Channel outputs for this Modbus unit.</text>
+            }
+        </div>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <a class="btn btn-outline-secondary" asp-page="/Devices/Index">All devices</a>
+        <button type="button" class="btn btn-outline-secondary" onclick="location.reload()">Refresh</button>
+    </div>
+</div>
+
+@if (Model.LoadError is not null)
+{
+    <div class="alert alert-danger">@Model.LoadError</div>
+}
+else if (Model.Unit is not null)
+{
+    <div class="card shadow-sm mb-3">
+        <div class="card-body">
+            <h5 class="card-title">Channels</h5>
+            <div class="channel-grid">
+                @foreach (var ch in Model.Channels)
+                {
+                    <div class="card channel-card" data-channel="@ch.Channel">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <strong>CH @ch.Channel</strong>
+                                @if (ch.Led is bool led)
+                                {
+                                    <span class="badge @(led ? "text-bg-success" : "text-bg-secondary")">LED @(led ? "on" : "off")</span>
+                                }
+                            </div>
+                            <div class="mb-1">
+                                <span class="value">@ch.Value.ToString("0.###")</span><span class="unit">@ch.Unit</span>
+                            </div>
+                            <div class="small text-muted mono mb-3">raw @ch.Raw</div>
+                            <form method="post" asp-page-handler="Set" class="d-flex gap-2">
+                                <input type="hidden" name="channel" value="@ch.Channel" />
+                                <input class="form-control form-control-sm" type="number" name="value" step="0.001" min="0" max="@(ch.Unit == "V" ? "10" : "20")" value="@ch.Value.ToString("0.###")" />
+                                <button class="btn btn-sm btn-primary" type="submit">Set</button>
+                            </form>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h5 class="card-title">Set all</h5>
+            <form method="post" asp-page-handler="SetAll">
+                <div class="channel-grid mb-3">
+                    @for (var i = 0; i < Model.Channels.Count; i++)
+                    {
+                        var ch = Model.Channels[i];
+                        <div>
+                            <label class="form-label">CH @ch.Channel (@ch.Unit)</label>
+                            <input class="form-control" type="number" name="values[@i]" step="0.001" min="0" max="@(ch.Unit == "V" ? "10" : "20")" value="@ch.Value.ToString("0.###")" />
+                        </div>
+                    }
+                </div>
+                <button class="btn btn-primary" type="submit">Apply all</button>
+            </form>
+            <div class="small text-muted mt-2">Values are written immediately to the device when connected.</div>
+        </div>
+    </div>
+}

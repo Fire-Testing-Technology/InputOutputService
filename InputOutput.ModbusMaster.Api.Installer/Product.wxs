@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+	<Product Id="*" Name="$(var.ApplicationFullName)" Language="1033" Version="$(var.FullSafeVersion)" Manufacturer="$(var.FullCompany)" UpgradeCode="b7d5e3a9-8c24-4f1e-a6b0-3d9e7c5f1a82">
+		<Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" Platform="$(var.PackagePlatform)"/>
+
+		<MajorUpgrade
+			AllowSameVersionUpgrades="yes"
+			IgnoreRemoveFailure="no"
+			Schedule="afterInstallInitialize"
+			DowngradeErrorMessage="A newer version of $(var.ApplicationLongName) is already installed."/>
+
+		<MediaTemplate EmbedCab="yes"/>
+
+		<Icon Id="ProductIcon" SourceFile="ftt_icon.ico" />
+		<Property Id="ARPPRODUCTICON" Value="ProductIcon" />
+
+		<Feature Id="ProductFeature" Title="$(var.ApplicationFullName) [$(var.PackagePlatform)]" Level="1">
+			<!--PublishFiles.wxs is produced by heat.exe during build; ServiceInstall is injected via HeatTransform.xslt-->
+			<ComponentGroupRef Id="PublishFiles" />
+			<ComponentRef Id="StartMenuShortcut" />
+			<ComponentRef Id="DesktopShortcut" />
+		</Feature>
+
+		<WixVariable Id="WixUIBannerBmp" Value="Banner.bmp" />
+		<WixVariable Id="WixUIDialogBmp" Value="Dialog.bmp" />
+		<WixVariable Id="WixUILicenseRtf" Value="license.rtf" />
+
+		<UI>
+			<UIRef Id="WixUI_Minimal" />
+			<UIRef Id="WixUI_ErrorProgressText" />
+		</UI>
+	</Product>
+
+	<Fragment>
+		<Directory Id="TARGETDIR" Name="SourceDir">
+
+			<?if $(var.PackagePlatform) = x64 ?>
+			<Directory Id="ProgramFiles64Folder">
+				<Directory Id="CompanyInstallFolder" Name="$(var.LongCompany)">
+					<Directory Id="ProductInstallFolder" Name="$(var.ApplicationShortName)">
+						<Directory Id="MajorVersionInstallFolder" Name="$(var.MajorVersion)">
+							<Directory Id="INSTALLFOLDER" Name="$(var.MinorFolderVersion)" />
+						</Directory>
+					</Directory>
+				</Directory>
+			</Directory>
+			<?else ?>
+			<Directory Id="ProgramFilesFolder">
+				<Directory Id="CompanyInstallFolder" Name="$(var.LongCompany)">
+					<Directory Id="ProductInstallFolder" Name="$(var.ApplicationShortName)">
+						<Directory Id="MajorVersionInstallFolder" Name="$(var.MajorVersion)">
+							<Directory Id="INSTALLFOLDER" Name="$(var.MinorFolderVersion)" />
+						</Directory>
+					</Directory>
+				</Directory>
+			</Directory>
+			<?endif ?>
+
+			<Directory Id="ProgramMenuFolder">
+				<Directory Id="ApplicationProgramsCompanyFolder" Name="$(var.LongCompany)">
+					<Directory Id="ApplicationProgramsFolder" Name="$(var.ApplicationLongName)" />
+				</Directory>
+			</Directory>
+
+			<Directory Id="DesktopFolder" />
+		</Directory>
+	</Fragment>
+
+	<Fragment>
+		<DirectoryRef Id="ApplicationProgramsFolder">
+			<Component Id="StartMenuShortcut" Guid="{D4E6F8A0-1B2C-4E5F-9A0B-3C4D5E6F7A8B}">
+				<!-- Opens the Razor UI hosted by the Windows service -->
+				<Shortcut
+					Id="StartMenuShortcut"
+					Name="$(var.ApplicationLongName)"
+					Description="Open $(var.ApplicationFullName) UI"
+					Target="$(var.ApplicationUrl)"
+					WorkingDirectory="INSTALLFOLDER" />
+
+				<RemoveFolder
+					Id="RemoveApplicationProgramsFolder"
+					On="uninstall" />
+
+				<RegistryValue
+					Root="HKLM"
+					Key="Software\FTT\$(var.ApplicationLongName)"
+					Name="StartShortcutInstalled"
+					Type="integer"
+					Value="1"
+					KeyPath="yes" />
+			</Component>
+		</DirectoryRef>
+	</Fragment>
+
+	<Fragment>
+		<DirectoryRef Id="DesktopFolder">
+			<Component Id="DesktopShortcut" Guid="{E5F7A9B1-2C3D-4F60-A1B2-4D5E6F7A8B9C}">
+				<Shortcut
+					Id="DesktopShortcut"
+					Name="$(var.ApplicationLongName)"
+					Description="Open $(var.ApplicationFullName) UI"
+					Target="$(var.ApplicationUrl)"
+					WorkingDirectory="INSTALLFOLDER"
+					Advertise="no" />
+
+				<RemoveFolder
+					Id="RemoveDesktopShortcut"
+					On="uninstall" />
+
+				<RegistryValue
+					Root="HKLM"
+					Key="Software\FTT\$(var.ApplicationLongName)"
+					Name="DesktopShortcutInstalled"
+					Type="integer"
+					Value="1"
+					KeyPath="yes" />
+			</Component>
+		</DirectoryRef>
+	</Fragment>
+
+</Wix>

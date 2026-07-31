@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" InitialTargets="EnsureWixToolsetInstalled" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">x64</Platform>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' And '$(Platform)' == 'x86'">win-x86</RuntimeIdentifier>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' And '$(Platform)' != 'x86'">win-x64</RuntimeIdentifier>
+    <ProductVersion>3.10</ProductVersion>
+    <ProjectGuid>{E3A7C1B2-4F58-4A9D-8E16-7C2B9D0F4A31}</ProjectGuid>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ApplicationName>FTT Input Output</ApplicationName>
+    <ApplicationExeName>InputOutput.ModbusMaster.Api.exe</ApplicationExeName>
+    <WindowsServiceName>FTTInputOutput</WindowsServiceName>
+    <ApplicationUrl>https://localhost:7015/Devices</ApplicationUrl>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Package</OutputType>
+    <AppProject>..\InputOutput.ModbusMaster.Api\InputOutput.ModbusMaster.Api.csproj</AppProject>
+    <HeatExe>C:\Program Files (x86)\WiX Toolset v3.11\bin\heat.exe</HeatExe>
+    <PublishDir>$(MSBuildProjectDirectory)\..\InputOutput.ModbusMaster.Api\bin\Release\$(TargetFramework)\$(RuntimeIdentifier)\publish</PublishDir>
+    <HeatOutput>$(MSBuildProjectDirectory)\PublishFiles.g.wxs</HeatOutput>
+    <SuppressValidation>True</SuppressValidation>
+    <DefineSolutionProperties>false</DefineSolutionProperties>
+    <LongCompany>Fire Testing Technology</LongCompany>
+    <FullCompany>Fire Testing Technology Ltd.</FullCompany>
+  </PropertyGroup>
+  <!-- Versions -->
+  <PropertyGroup>
+    <MajorVersion>1</MajorVersion>
+    <MinorVersion>0</MinorVersion>
+    <PatchVersion>0</PatchVersion>
+    <BetaVersion>001</BetaVersion>
+    <ApplicationDisplayVersion>$(MajorVersion).$(MinorVersion).$(PatchVersion)</ApplicationDisplayVersion>
+    <MinorFolderVersion>$([System.String]::Format("{0:D3}", $([System.Int32]::Parse('$(MinorVersion)'))))</MinorFolderVersion>
+    <CustomVersion>$(ApplicationDisplayVersion)</CustomVersion>
+    <FullSafeVersion>$(MajorVersion).$(MinorVersion).$(PatchVersion)</FullSafeVersion>
+    <FullSafeVersion Condition="'$(BetaVersion)' != ''">$(FullSafeVersion).$(BetaVersion)</FullSafeVersion>
+    <CustomVersion Condition="'$(BetaVersion)' != ''">$(CustomVersion)-BETA$([System.String]::Format("{0:D4}", $([System.Int32]::Parse('$(BetaVersion)'))))</CustomVersion>
+  </PropertyGroup>
+  <!-- WiX Variables -->
+  <PropertyGroup>
+    <OutputName>FTTInputOutput-$(MajorVersion).$(MinorVersion).$(PatchVersion)-$(Platform)</OutputName>
+    <OutputName Condition="'$(BetaVersion)' != ''">FTTInputOutput-$(MajorVersion).$(MinorVersion).$(PatchVersion)-BETA$([System.String]::Format("{0:D4}", $([System.Int32]::Parse('$(BetaVersion)'))))-$(Platform)</OutputName>
+    <ApplicationShortName>$(ApplicationName)</ApplicationShortName>
+    <ApplicationLongName>$(ApplicationName) $(CustomVersion)</ApplicationLongName>
+    <ApplicationFullName>$(ApplicationName) v$(CustomVersion) ($(Platform))</ApplicationFullName>
+    <ServiceDisplayName>$(ApplicationName) v$(CustomVersion)</ServiceDisplayName>
+    <DefineConstants>
+			ApplicationDisplayVersion=$(ApplicationDisplayVersion);
+			FullSafeVersion=$(FullSafeVersion);
+			CustomVersion=$(CustomVersion);
+			MinorFolderVersion=$(MinorFolderVersion);
+			MajorVersion=$(MajorVersion);
+			MinorVersion=$(MinorVersion);
+			PatchVersion=$(PatchVersion);
+			BetaVersion=$(BetaVersion);
+			ApplicationShortName=$(ApplicationShortName);
+			ApplicationLongName=$(ApplicationLongName);
+			ApplicationFullName=$(ApplicationFullName);
+			ApplicationExeName=$(ApplicationExeName);
+			WindowsServiceName=$(WindowsServiceName);
+			ServiceDisplayName=$(ServiceDisplayName);
+			ApplicationUrl=$(ApplicationUrl);
+			SourceDir=..\InputOutput.ModbusMaster.Api\bin\Release\$(TargetFramework)\$(RuntimeIdentifier)\publish;
+			PackagePlatform=$(Platform);
+			FullCompany=$(FullCompany);
+			LongCompany=$(LongCompany)
+		</DefineConstants>
+    <OutputPath>bin\$(Platform)\$(Configuration)\</OutputPath>
+    <IntermediateOutputPath>obj\$(Platform)\$(Configuration)\</IntermediateOutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DefineConstants>$(DefineConstants);Debug</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <RunDotNetPublish>true</RunDotNetPublish>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Product.wxs" />
+    <Compile Include="PublishFiles.g.wxs" />
+  </ItemGroup>
+  <ItemGroup>
+    <WixExtension Include="WixUtilExtension">
+      <HintPath>$(WixExtDir)\WixUtilExtension.dll</HintPath>
+      <Name>WixUtilExtension</Name>
+    </WixExtension>
+    <WixExtension Include="WixUIExtension">
+      <HintPath>$(WixExtDir)\WixUIExtension.dll</HintPath>
+      <Name>WixUIExtension</Name>
+    </WixExtension>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Banner.bmp" />
+    <Content Include="Dialog.bmp" />
+    <Content Include="license.rtf" />
+    <Content Include="ftt_icon.ico" />
+    <Content Include="README.md" />
+    <Content Include="HeatTransform.xslt" />
+  </ItemGroup>
+  <Import Project="$(WixTargetsPath)" Condition=" '$(WixTargetsPath)' != '' " />
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\WiX\v3.x\Wix.targets" Condition=" '$(WixTargetsPath)' == '' AND Exists('$(MSBuildExtensionsPath32)\Microsoft\WiX\v3.x\Wix.targets') " />
+  <Target Name="EnsureWixToolsetInstalled" Condition=" '$(WixTargetsImported)' != 'true' ">
+    <Error Text="The WiX Toolset v3.11 build tools must be installed to build this project. To download the WiX Toolset, see https://wixtoolset.org/releases/v3.11/stable" />
+  </Target>
+  <Target Name="DotNetPublish" BeforeTargets="BeforeBuild" Condition="'$(RunDotNetPublish)' == 'true'">
+    <ItemGroup>
+      <DotNetPublishArg Include="publish" />
+      <DotNetPublishArg Include="$(AppProject)" />
+      <DotNetPublishArg Include="-f $(TargetFramework)" />
+      <DotNetPublishArg Include="-c $(Configuration)" />
+      <DotNetPublishArg Include="--self-contained" />
+      <DotNetPublishArg Include="true" />
+      <DotNetPublishArg Include="/p:WindowsPackageType=None" />
+      <DotNetPublishArg Include="-r $(RuntimeIdentifier)" />
+      <DotNetPublishArg Include="-o $(PublishDir)" />
+      <DotNetPublishArg Include="/p:MajorVersion=$(MajorVersion)" />
+      <DotNetPublishArg Include="/p:MinorVersion=$(MinorVersion)" />
+      <DotNetPublishArg Include="/p:PatchVersion=$(PatchVersion)" />
+      <DotNetPublishArg Include="/p:BetaVersion=$(BetaVersion)" />
+      <DotNetPublishArg Include="/p:DebugSymbols=false" />
+    </ItemGroup>
+    <MakeDir Directories="$(PublishDir)" />
+    <Exec Command="dotnet @(DotNetPublishArg, ' ')" />
+  </Target>
+  <Target Name="HarvestPublishFiles" BeforeTargets="BeforeBuild" DependsOnTargets="DotNetPublish" Condition="'$(RunDotNetPublish)' == 'true'">
+    <ItemGroup>
+      <HeatArg Include="dir $(PublishDir)" />
+      <HeatArg Include="-cg PublishFiles" />
+      <HeatArg Include="-dr INSTALLFOLDER" />
+      <HeatArg Include="-gg" />
+      <HeatArg Include="-srd" />
+      <HeatArg Include="-sln" />
+      <HeatArg Include="-scom" />
+      <HeatArg Include="-sreg" />
+      <HeatArg Include="-sfrag" />
+      <HeatArg Include="-t $(MSBuildProjectDirectory)\HeatTransform.xslt" />
+      <HeatArg Include="-var var.SourceDir" />
+      <HeatArg Include="-arch $(Platform)" />
+      <HeatArg Include="-out $(HeatOutput)" />
+    </ItemGroup>
+    <Exec Command="&quot;$(HeatExe)&quot; @(HeatArg, ' ')" />
+  </Target>
+</Project>

@@ -1,0 +1,66 @@
+@page
+@model InputOutput.ModbusMaster.Api.Pages.Devices.IndexModel
+@{
+    ViewData["Title"] = "Devices";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h1 class="mb-1">Devices</h1>
+        <div class="text-muted">Registered Modbus units on the shared RTU line.</div>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <a class="btn btn-outline-secondary" asp-page="/Scan/Index">Scan bus</a>
+        <a class="btn btn-outline-secondary" asp-page="/Configure/Index">Configure</a>
+    </div>
+</div>
+
+@if (Model.Units.Count == 0)
+{
+    <div class="alert alert-secondary">No devices registered yet. Run a scan or add units under Configure.</div>
+}
+else
+{
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Unit</th>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Identifier</th>
+                            <th>Serial</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var unit in Model.Units)
+                    {
+                        <tr>
+                            <td class="mono">
+                                <a asp-page="/Devices/Detail" asp-route-unitId="@unit.UnitId">@unit.UnitId</a>
+                            </td>
+                            <td>@(unit.Name ?? "—")</td>
+                            <td><span class="badge text-bg-secondary">@unit.Type</span></td>
+                            <td class="mono">@(unit.Identifier ?? "—")</td>
+                            <td class="mono">@(unit.SerialNumber ?? "—")</td>
+                            <td>
+                                @if (unit.Online)
+                                {
+                                    <span class="badge text-bg-success">online</span>
+                                }
+                                else
+                                {
+                                    <span class="badge text-bg-secondary">offline</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}

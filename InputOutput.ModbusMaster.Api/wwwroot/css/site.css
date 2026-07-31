@@ -1,0 +1,149 @@
+/* App-specific extras on top of FTT / Aegis app.css */
+
+.btn {
+    border-radius: 999px;
+    min-width: var(--btn-min-width, 12rem);
+}
+
+.btn-sm {
+    border-radius: 999px;
+    min-width: var(--btn-min-width-sm, 10rem);
+}
+
+.btn-lg {
+    border-radius: 999px;
+    min-width: var(--btn-min-width, 12rem);
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    border: 1px solid var(--ftt-border);
+    background: var(--ftt-bg-dark);
+    color: var(--ftt-fg);
+}
+
+.status-pill .dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--ftt-fg-muted);
+}
+
+.status-pill.online .dot {
+    background: var(--ftt-positive);
+    box-shadow: 0 0 0 3px rgba(50, 205, 50, 0.2);
+}
+
+.status-pill.offline .dot {
+    background: var(--ftt-negative);
+}
+
+.status-pill .poll {
+    margin-left: 0.15rem;
+    padding: 0.05rem 0.4rem;
+    border-radius: 999px;
+    background: rgba(241, 94, 37, 0.2);
+    color: var(--ftt-brand);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.mono {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 0.9em;
+}
+
+.channel-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.85rem;
+}
+
+.channel-card .value {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 1.35rem;
+    letter-spacing: -0.02em;
+}
+
+.channel-card .unit {
+    color: var(--ftt-fg-muted);
+    font-size: 0.85rem;
+    margin-left: 0.2rem;
+}
+
+.scan-progress {
+    height: 0.65rem;
+    border-radius: 999px;
+    background: var(--ftt-bg-dark);
+    overflow: hidden;
+    border: 1px solid var(--ftt-border);
+}
+
+.scan-progress > span {
+    display: block;
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--ftt-brand), var(--ftt-accent));
+    transition: width 120ms linear;
+}
+
+.scan-log {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 0.82rem;
+    max-height: 260px;
+    overflow: auto;
+    background: var(--ftt-bg-dark);
+    color: var(--ftt-fg);
+    border: 1px solid var(--ftt-border);
+    border-radius: 0.375rem;
+    padding: 0.75rem 0.9rem;
+    line-height: 1.45;
+}
+
+.scan-log .discovered {
+    color: var(--ftt-accent);
+}
+
+.scan-log .error {
+    color: var(--ftt-negative);
+}
+
+.device-editor + .device-editor {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px dashed var(--ftt-border);
+}
+
+.form-check-label {
+    color: var(--ftt-fg);
+}
+
+@media (max-width: 768px) {
+    .page {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 100%;
+        min-height: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--ftt-border);
+    }
+
+    .sidebar .nav {
+        flex-direction: row !important;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+    }
+
+    .sidebar .nav-link {
+        margin-bottom: 0;
+    }
+}

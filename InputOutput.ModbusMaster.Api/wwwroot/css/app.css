@@ -1,0 +1,336 @@
+/* FTT palette from FCAControls.Wpf Themes (LightColours.xaml / DarkColours.xaml) */
+
+[data-theme="light"] {
+    color-scheme: light;
+
+    --ftt-bg: #FCFCFC;
+    --ftt-bg-light: #FFFFFF;
+    --ftt-bg-dark: #F8F8F8;
+    --ftt-fg: #282828;
+    --ftt-fg-muted: #6E6E6E;
+    --ftt-brand: #F15E25;
+    --ftt-brand-hover: #ED693D;
+    --ftt-brand-active: #EA410E;
+    --ftt-accent: #64CCF1;
+    --ftt-accent-hover: #94D8EF;
+    --ftt-entity: #C8C8C8;
+    --ftt-entity-light: #D3D3D3;
+    --ftt-entity-dark: #BEBEBE;
+    --ftt-sidebar-bg: #232526;
+    --ftt-sidebar-fg: #FAFAFA;
+    --ftt-sidebar-link: #D3D3D3;
+    --ftt-sidebar-link-hover-bg: rgba(255, 255, 255, 0.08);
+    --ftt-sidebar-active-bg: rgba(241, 94, 37, 0.28);
+    --ftt-sidebar-active-fg: #FFFFFF;
+    --ftt-border: #C8C8C8;
+    --ftt-card-bg: #FFFFFF;
+    --ftt-topbar-bg: #FFFFFF;
+    --ftt-input-bg: #FFFFFF;
+    --ftt-input-border: #BEBEBE;
+    --ftt-table-stripe: #F8F8F8;
+    --ftt-positive: #32CD32;
+    --ftt-negative: #FF0000;
+    --ftt-warning: #FFD700;
+
+    --bs-body-bg: var(--ftt-bg);
+    --bs-body-color: var(--ftt-fg);
+    --bs-primary: var(--ftt-brand);
+    --bs-primary-rgb: 241, 94, 37;
+    --bs-secondary-color: var(--ftt-fg-muted);
+    --bs-border-color: var(--ftt-border);
+    --bs-link-color: var(--ftt-brand);
+    --bs-link-hover-color: var(--ftt-brand-hover);
+}
+
+[data-theme="dark"] {
+    color-scheme: dark;
+
+    --ftt-bg: #252525;
+    --ftt-bg-light: #303030;
+    --ftt-bg-dark: #191919;
+    --ftt-fg: #FAFAFA;
+    --ftt-fg-muted: #C8C8C8;
+    --ftt-brand: #F15E25;
+    --ftt-brand-hover: #ED693D;
+    --ftt-brand-active: #EA410E;
+    --ftt-accent: #64CCF1;
+    --ftt-accent-hover: #94D8EF;
+    --ftt-entity: #54575A;
+    --ftt-entity-light: #83888C;
+    --ftt-entity-dark: #232526;
+    --ftt-sidebar-bg: #191919;
+    --ftt-sidebar-fg: #FAFAFA;
+    --ftt-sidebar-link: #C8C8C8;
+    --ftt-sidebar-link-hover-bg: rgba(255, 255, 255, 0.06);
+    --ftt-sidebar-active-bg: rgba(241, 94, 37, 0.32);
+    --ftt-sidebar-active-fg: #FFFFFF;
+    --ftt-border: #54575A;
+    --ftt-card-bg: #303030;
+    --ftt-topbar-bg: #303030;
+    --ftt-input-bg: #252525;
+    --ftt-input-border: #54575A;
+    --ftt-table-stripe: #2A2A2A;
+    --ftt-positive: #32CD32;
+    --ftt-negative: #FF0000;
+    --ftt-warning: #FFFF00;
+
+    --bs-body-bg: var(--ftt-bg);
+    --bs-body-color: var(--ftt-fg);
+    --bs-primary: var(--ftt-brand);
+    --bs-primary-rgb: 241, 94, 37;
+    --bs-secondary-color: var(--ftt-fg-muted);
+    --bs-border-color: var(--ftt-border);
+    --bs-link-color: var(--ftt-accent);
+    --bs-link-hover-color: var(--ftt-accent-hover);
+}
+
+html,
+body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background-color: var(--ftt-bg);
+    color: var(--ftt-fg);
+}
+
+.page {
+    display: flex;
+    min-height: 100vh;
+}
+
+.sidebar {
+    width: 240px;
+    background: var(--ftt-sidebar-bg);
+    min-height: 100vh;
+    border-right: 1px solid var(--ftt-border);
+}
+
+.sidebar .sidebar-brand {
+    line-height: 0;
+}
+
+.ftt-logo-link {
+    display: inline-flex;
+    flex-shrink: 0;
+    line-height: 0;
+}
+
+.ftt-logo {
+    width: auto;
+    display: block;
+    background: transparent;
+}
+
+.ftt-logo--header {
+    height: 1.75rem;
+}
+
+.ftt-logo--sidebar {
+    height: 2.25rem;
+}
+
+.header-brand {
+    min-width: 0;
+}
+
+.header-title {
+    font-size: 0.95rem;
+    white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+    .header-title {
+        display: none;
+    }
+}
+
+.list-group-item {
+    background-color: var(--ftt-card-bg);
+    border-color: var(--ftt-border);
+    color: var(--ftt-fg);
+}
+
+.sidebar .nav-link {
+    color: var(--ftt-sidebar-link);
+    border-radius: 0.375rem;
+    margin-bottom: 0.25rem;
+}
+
+.sidebar .nav-link:hover {
+    background: var(--ftt-sidebar-link-hover-bg);
+    color: var(--ftt-sidebar-fg);
+}
+
+.sidebar .nav-link.active {
+    background: var(--ftt-sidebar-active-bg);
+    color: var(--ftt-sidebar-active-fg);
+    font-weight: 600;
+}
+
+main {
+    flex: 1;
+    background: var(--ftt-bg);
+}
+
+.top-row {
+    background: var(--ftt-topbar-bg);
+    border-bottom: 1px solid var(--ftt-border);
+    height: 3.5rem;
+    color: var(--ftt-fg);
+}
+
+.top-row .text-muted {
+    color: var(--ftt-fg-muted) !important;
+}
+
+.content {
+    max-width: 1200px;
+}
+
+code {
+    font-size: 0.85em;
+    color: var(--ftt-accent);
+}
+
+.card {
+    background-color: var(--ftt-card-bg);
+    border-color: var(--ftt-border);
+    color: var(--ftt-fg);
+}
+
+.card .card-title {
+    color: var(--ftt-fg);
+}
+
+.table {
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--ftt-fg);
+    --bs-table-border-color: var(--ftt-border);
+    --bs-table-striped-bg: var(--ftt-table-stripe);
+    --bs-table-striped-color: var(--ftt-fg);
+    --bs-table-hover-bg: var(--ftt-bg-light);
+    --bs-table-hover-color: var(--ftt-fg);
+}
+
+.form-control,
+.form-select {
+    background-color: var(--ftt-input-bg);
+    border-color: var(--ftt-input-border);
+    color: var(--ftt-fg);
+}
+
+.form-control:focus,
+.form-select:focus {
+    background-color: var(--ftt-input-bg);
+    border-color: var(--ftt-accent);
+    color: var(--ftt-fg);
+    box-shadow: 0 0 0 0.2rem rgba(100, 204, 241, 0.25);
+}
+
+.form-control::placeholder {
+    color: var(--ftt-fg-muted);
+}
+
+.form-label {
+    color: var(--ftt-fg);
+}
+
+.btn-primary {
+    --bs-btn-bg: var(--ftt-brand);
+    --bs-btn-border-color: var(--ftt-brand);
+    --bs-btn-hover-bg: var(--ftt-brand-hover);
+    --bs-btn-hover-border-color: var(--ftt-brand-hover);
+    --bs-btn-active-bg: var(--ftt-brand-active);
+    --bs-btn-active-border-color: var(--ftt-brand-active);
+    --bs-btn-disabled-bg: var(--ftt-brand);
+    --bs-btn-disabled-border-color: var(--ftt-brand);
+}
+
+.btn-outline-secondary {
+    --bs-btn-color: var(--ftt-fg);
+    --bs-btn-border-color: var(--ftt-border);
+    --bs-btn-hover-bg: var(--ftt-bg-light);
+    --bs-btn-hover-border-color: var(--ftt-entity-light);
+    --bs-btn-hover-color: var(--ftt-fg);
+    --bs-btn-active-bg: var(--ftt-entity);
+    --bs-btn-active-border-color: var(--ftt-entity);
+    --bs-btn-active-color: var(--ftt-fg);
+}
+
+.btn-outline-primary {
+    --bs-btn-color: var(--ftt-brand);
+    --bs-btn-border-color: var(--ftt-brand);
+    --bs-btn-hover-bg: var(--ftt-brand);
+    --bs-btn-hover-border-color: var(--ftt-brand);
+    --bs-btn-active-bg: var(--ftt-brand-active);
+    --bs-btn-active-border-color: var(--ftt-brand-active);
+}
+
+.btn-outline-danger {
+    --bs-btn-hover-bg: var(--ftt-negative);
+    --bs-btn-hover-border-color: var(--ftt-negative);
+}
+
+.alert-danger {
+    --bs-alert-bg: rgba(255, 0, 0, 0.12);
+    --bs-alert-border-color: var(--ftt-negative);
+    --bs-alert-color: var(--ftt-fg);
+}
+
+.alert-warning {
+    --bs-alert-bg: rgba(255, 215, 0, 0.15);
+    --bs-alert-border-color: var(--ftt-warning);
+    --bs-alert-color: var(--ftt-fg);
+}
+
+.alert-secondary {
+    --bs-alert-bg: var(--ftt-bg-light);
+    --bs-alert-border-color: var(--ftt-border);
+    --bs-alert-color: var(--ftt-fg);
+}
+
+.badge.text-bg-success {
+    background-color: var(--ftt-positive) !important;
+    color: #181818 !important;
+}
+
+.badge.text-bg-danger {
+    background-color: var(--ftt-negative) !important;
+}
+
+.badge.text-bg-secondary {
+    background-color: var(--ftt-entity) !important;
+    color: var(--ftt-fg) !important;
+}
+
+.theme-toggle {
+    display: inline-flex;
+    border: 1px solid var(--ftt-border);
+    border-radius: 0.375rem;
+    overflow: hidden;
+    background: var(--ftt-bg-dark);
+}
+
+.theme-toggle-btn {
+    border: none;
+    background: transparent;
+    color: var(--ftt-fg-muted);
+    padding: 0.25rem 0.65rem;
+    font-size: 0.8125rem;
+    line-height: 1.4;
+    cursor: pointer;
+}
+
+.theme-toggle-btn:hover {
+    color: var(--ftt-fg);
+    background: var(--ftt-bg-light);
+}
+
+.theme-toggle-btn.active {
+    background: var(--ftt-brand);
+    color: #FFFFFF;
+    font-weight: 600;
+}
+
+.theme-toggle-btn:focus-visible {
+    outline: 2px solid var(--ftt-accent);
+    outline-offset: 1px;
+}

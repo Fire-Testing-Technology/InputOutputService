@@ -267,6 +267,7 @@ ClientBin/
 *.dbproj.schemaview
 *.jfm
 *.pfx
+!InputOutput.ModbusMaster.Api/certs/localhost.pfx
 *.publishsettings
 orleans.codegen.cs
 
