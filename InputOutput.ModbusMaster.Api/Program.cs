@@ -6,22 +6,27 @@ using InputOutput.ModbusMaster.Api.Services;
 using InputOutput.ModbusMaster.Hosting;
 using Microsoft.Extensions.Hosting.WindowsServices;
 
-// If command line arguments are present i.e. '/Install' or '/Uninstall'
-// this class will install this application as a windows service.
-// See https://learn.microsoft.com/en-us/dotnet/core/extensions/windows-service-with-installer
-var installer = new WindowsServiceInstaller(args);
-if (await installer.InstallAsWindowsService())
-{
-    return;
-}
+var isWindowsService = false;
 
-var isWindowsService = WindowsServiceHelpers.IsWindowsService();
-
-// Service installs should use Production unless ASPNETCORE_ENVIRONMENT is already set.
-if (isWindowsService
-    && string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")))
+if (OperatingSystem.IsWindows())
 {
-    Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", Environments.Production);
+    // If command line arguments are present i.e. '/Install' or '/Uninstall'
+    // this class will install this application as a windows service.
+    // See https://learn.microsoft.com/en-us/dotnet/core/extensions/windows-service-with-installer
+    var installer = new WindowsServiceInstaller(args);
+    if (await installer.InstallAsWindowsService())
+    {
+        return;
+    }
+
+    isWindowsService = WindowsServiceHelpers.IsWindowsService();
+
+    // Service installs should use Production unless ASPNETCORE_ENVIRONMENT is already set.
+    if (isWindowsService
+        && string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")))
+    {
+        Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", Environments.Production);
+    }
 }
 
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
@@ -47,8 +52,12 @@ builder.Services
 builder.Services.AddModbusRtuMaster(builder.Configuration);
 builder.Services.AddSingleton<ModbusConfigStore>();
 builder.Services.AddSingleton<ScanProgressService>();
-builder.Services.AddWindowsService(options => { options.ServiceName = WindowsServiceInstaller.ServiceName; });
-builder.Host.UseWindowsService();
+
+if (OperatingSystem.IsWindows())
+{
+    builder.Services.AddWindowsService(options => { options.ServiceName = WindowsServiceInstaller.ServiceName; });
+    builder.Host.UseWindowsService();
+}
 
 var app = builder.Build();
 
