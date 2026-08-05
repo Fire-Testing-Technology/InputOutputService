@@ -31,7 +31,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="certs\localhost.pfx">
+    <None Update="certs\localhost.pem">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </None>
+    <None Update="certs\localhost-key.pem">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </None>

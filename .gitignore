@@ -268,6 +268,8 @@ ClientBin/
 *.jfm
 *.pfx
 !InputOutput.ModbusMaster.Api/certs/localhost.pfx
+!InputOutput.ModbusMaster.Api/certs/localhost.pem
+!InputOutput.ModbusMaster.Api/certs/localhost-key.pem
 *.publishsettings
 orleans.codegen.cs
 
