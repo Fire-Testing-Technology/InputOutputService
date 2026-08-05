@@ -35,12 +35,26 @@ public sealed class IndexModel(IModbusMaster master, ModbusConfigStore configSto
     public IReadOnlyList<SelectListItem> StopBitsOptions { get; } =
         Enum.GetValues<StopBits>().Select(s => new SelectListItem(s.ToString(), s.ToString())).ToArray();
 
-    public void OnGet() => LoadFromStore();
+    public IReadOnlyList<SelectListItem> PortOptions { get; private set; } = [];
+
+    public IReadOnlyList<SelectListItem> BaudRateOptions { get; private set; } = [];
+
+    private static readonly int[] StandardBaudRates =
+    [
+        1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 128000, 256000, 460800, 921600
+    ];
+
+    public void OnGet()
+    {
+        LoadFromStore();
+        LoadSelectOptions();
+    }
 
     public async Task<IActionResult> OnPostSaveAsync(CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid)
         {
+            LoadSelectOptions();
             return Page();
         }
 
@@ -56,6 +70,7 @@ public sealed class IndexModel(IModbusMaster master, ModbusConfigStore configSto
     {
         if (!ModelState.IsValid)
         {
+            LoadSelectOptions();
             return Page();
         }
 
@@ -147,6 +162,7 @@ public sealed class IndexModel(IModbusMaster master, ModbusConfigStore configSto
             Name = "New device",
             Mode = "Voltage0To10V"
         });
+        LoadSelectOptions();
         return Page();
     }
 
@@ -157,7 +173,45 @@ public sealed class IndexModel(IModbusMaster master, ModbusConfigStore configSto
             Input.Devices.RemoveAt(index);
         }
 
+        LoadSelectOptions();
         return Page();
+    }
+
+    private void LoadSelectOptions()
+    {
+        LoadPortOptions();
+        LoadBaudRateOptions();
+    }
+
+    private void LoadPortOptions()
+    {
+        var ports = SerialPort.GetPortNames()
+            .OrderBy(p => p, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        var items = ports.Select(p => new SelectListItem(p, p)).ToList();
+
+        if (!string.IsNullOrWhiteSpace(Input.PortName)
+            && !ports.Contains(Input.PortName, StringComparer.OrdinalIgnoreCase))
+        {
+            items.Insert(0, new SelectListItem($"{Input.PortName} (not found)", Input.PortName));
+        }
+
+        PortOptions = items;
+    }
+
+    private void LoadBaudRateOptions()
+    {
+        var rates = StandardBaudRates.ToList();
+        if (!rates.Contains(Input.BaudRate))
+        {
+            rates.Insert(0, Input.BaudRate);
+        }
+
+        BaudRateOptions = rates
+            .Select(b => new SelectListItem(
+                StandardBaudRates.Contains(b) ? b.ToString() : $"{b} (custom)",
+                b.ToString()))
+            .ToArray();
     }
 
     private void LoadFromStore()
@@ -204,6 +258,18 @@ public sealed class IndexModel(IModbusMaster master, ModbusConfigStore configSto
         host.ScanUnitIdTo = Input.ScanUnitIdTo;
         host.ScanInterProbeDelay = TimeSpan.FromMilliseconds(Input.ScanInterProbeDelayMs);
         host.RegisterDiscoveredDevices = Input.RegisterDiscoveredDevices;
+        var existingChannels = host.Devices.ToDictionary(
+            d => d.UnitId,
+            d => d.Channels.Select(c => new ModbusChannelOptions
+            {
+                Channel = c.Channel,
+                Name = c.Name,
+                Unit = c.Unit,
+                ZeroVoltage = c.ZeroVoltage,
+                SpanVoltage = c.SpanVoltage,
+                ZeroMeasurand = c.ZeroMeasurand,
+                SpanMeasurand = c.SpanMeasurand
+            }).ToList());
         host.Devices = Input.Devices.Select(d => new ModbusDeviceRegistrationOptions
         {
             Type = d.Type,
@@ -213,7 +279,8 @@ public sealed class IndexModel(IModbusMaster master, ModbusConfigStore configSto
             SerialNumber = string.IsNullOrWhiteSpace(d.SerialNumber) ? null : d.SerialNumber.Trim(),
             Mode = d.Type is "8 Out" or "WaveshareAnalogOutput8Ch"
                 ? d.Mode
-                : null
+                : null,
+            Channels = existingChannels.TryGetValue(d.UnitId, out var channels) ? channels : []
         }).ToList();
     }
 

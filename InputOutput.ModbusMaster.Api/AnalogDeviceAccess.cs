@@ -1,5 +1,6 @@
 using InputOutput.ModbusMaster.Api.Models;
 using InputOutput.ModbusMaster.Devices.Sequent;
+using InputOutput.ModbusMaster.Hosting;
 
 namespace InputOutput.ModbusMaster.Api;
 
@@ -42,37 +43,71 @@ internal static class AnalogDeviceAccess
         return true;
     }
 
-    public static void ApplySetpoint(IAnalogOutputDevice device, int channel, double? value, ushort? raw)
+    public static ModbusChannelOptions ResolveScale(
+        ModbusRtuHostOptions host,
+        IAnalogOutputDevice device,
+        int channel) =>
+        ChannelScale.Resolve(host, device.UnitId, channel, device.EngineeringUnit);
+
+    public static void ApplySetpoint(
+        ModbusRtuHostOptions host,
+        IAnalogOutputDevice device,
+        int channel,
+        double? measurand,
+        double? value,
+        ushort? raw)
     {
-        if (value is not null && raw is not null)
+        var specified = (measurand is not null ? 1 : 0)
+            + (value is not null ? 1 : 0)
+            + (raw is not null ? 1 : 0);
+
+        if (specified == 0)
         {
-            throw new InvalidOperationException("Specify either value or raw, not both.");
+            throw new InvalidOperationException("Specify measurand, value, or raw.");
         }
 
-        if (value is null && raw is null)
+        if (specified > 1)
         {
-            throw new InvalidOperationException("Specify value or raw.");
+            throw new InvalidOperationException("Specify only one of measurand, value, or raw.");
         }
 
         if (raw is not null)
         {
             device.SetChannelRaw(channel, raw.Value);
+            return;
         }
-        else
+
+        if (measurand is not null)
         {
-            device.SetChannelValue(channel, value!.Value);
+            var scale = ResolveScale(host, device, channel);
+            device.SetChannelValue(channel, ChannelScale.ToVoltage(scale, measurand.Value));
+            return;
         }
+
+        device.SetChannelValue(channel, value!.Value);
     }
 
-    public static ChannelDto ToDto(IAnalogOutputDevice device, int channel)
+    public static ChannelDto ToDto(ModbusRtuHostOptions host, IAnalogOutputDevice device, int channel)
     {
+        var scale = ResolveScale(host, device, channel);
+        var voltage = device.GetChannelValue(channel);
+        var measurand = ChannelScale.ToMeasurand(scale, voltage);
         bool? led = device is Sequent16UOut sequent ? sequent.GetLed(channel) : null;
+
         return new ChannelDto
         {
             Channel = channel,
+            Name = scale.Name ?? $"Channel {channel}",
+            Unit = scale.Unit,
+            Measurand = measurand,
+            Voltage = voltage,
+            ElectricalUnit = device.EngineeringUnit == AnalogOutputEngineeringUnit.Volts ? "V" : "mA",
+            Value = voltage,
             Raw = device.GetChannelRaw(channel),
-            Value = device.GetChannelValue(channel),
-            Unit = device.EngineeringUnit == AnalogOutputEngineeringUnit.Volts ? "V" : "mA",
+            ZeroVoltage = scale.ZeroVoltage,
+            SpanVoltage = scale.SpanVoltage,
+            ZeroMeasurand = scale.ZeroMeasurand,
+            SpanMeasurand = scale.SpanMeasurand,
             Led = led
         };
     }

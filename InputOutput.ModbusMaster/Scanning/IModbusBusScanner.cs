@@ -11,7 +11,7 @@ public sealed class ModbusDiscoveredUnit
     /// <summary>Optional detail such as Waveshare software version.</summary>
     public string? Detail { get; init; }
 
-    /// <summary>True when the unit was newly registered with the master as a result of this scan.</summary>
+    /// <summary>True when the unit is registered with the master (already present or newly added by this scan).</summary>
     public bool Registered { get; init; }
 }
 

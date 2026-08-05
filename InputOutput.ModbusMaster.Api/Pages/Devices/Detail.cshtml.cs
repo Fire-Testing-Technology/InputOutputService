@@ -1,10 +1,13 @@
+using System.ComponentModel.DataAnnotations;
 using InputOutput.ModbusMaster.Api.Models;
+using InputOutput.ModbusMaster.Api.Services;
+using InputOutput.ModbusMaster.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace InputOutput.ModbusMaster.Api.Pages.Devices;
 
-public sealed class DetailModel(IModbusMaster master) : PageModel
+public sealed class DetailModel(IModbusMaster master, ModbusConfigStore configStore) : PageModel
 {
     [BindProperty(SupportsGet = true)]
     public int UnitId { get; set; }
@@ -12,6 +15,9 @@ public sealed class DetailModel(IModbusMaster master) : PageModel
     public UnitDto? Unit { get; private set; }
 
     public IReadOnlyList<ChannelDto> Channels { get; private set; } = [];
+
+    [BindProperty]
+    public List<ChannelConfigInput> ChannelConfigs { get; set; } = [];
 
     public string? LoadError { get; private set; }
 
@@ -25,7 +31,7 @@ public sealed class DetailModel(IModbusMaster master) : PageModel
         return Page();
     }
 
-    public async Task<IActionResult> OnPostSetAsync(int channel, double value, CancellationToken cancellationToken)
+    public async Task<IActionResult> OnPostSaveChannelConfigAsync(CancellationToken cancellationToken)
     {
         if (!AnalogDeviceAccess.TryResolve(master, UnitId, out var device, out _, out var message))
         {
@@ -33,11 +39,33 @@ public sealed class DetailModel(IModbusMaster master) : PageModel
             return RedirectToPage(new { unitId = UnitId });
         }
 
+        if (!ModelState.IsValid)
+        {
+            TryLoad();
+            return Page();
+        }
+
         try
         {
-            device.SetChannelValue(channel, value);
-            await device.FlushAsync(master, cancellationToken).ConfigureAwait(false);
-            TempData["Message"] = $"Channel {channel} set to {value} {EngineeringLabel(device)}.";
+            EnsureDeviceRegistration(device);
+            var registration = configStore.Host.Devices.First(d => d.UnitId == device.UnitId);
+            registration.Channels = ChannelConfigs
+                .Where(c => c.Channel is >= 1 && c.Channel <= device.ChannelCount)
+                .Select(c => new ModbusChannelOptions
+                {
+                    Channel = c.Channel,
+                    Name = string.IsNullOrWhiteSpace(c.Name) ? $"Channel {c.Channel}" : c.Name.Trim(),
+                    Unit = string.IsNullOrWhiteSpace(c.Unit) ? "V" : c.Unit.Trim(),
+                    ZeroVoltage = c.ZeroVoltage,
+                    SpanVoltage = c.SpanVoltage,
+                    ZeroMeasurand = c.ZeroMeasurand,
+                    SpanMeasurand = c.SpanMeasurand
+                })
+                .OrderBy(c => c.Channel)
+                .ToList();
+
+            await configStore.SaveAsync(cancellationToken).ConfigureAwait(false);
+            TempData["Message"] = "Channel configuration saved.";
         }
         catch (Exception ex)
         {
@@ -63,9 +91,10 @@ public sealed class DetailModel(IModbusMaster master) : PageModel
                 return RedirectToPage(new { unitId = UnitId });
             }
 
+            var host = configStore.Host;
             for (var i = 0; i < values.Length; i++)
             {
-                device.SetChannelValue(i + 1, values[i]);
+                AnalogDeviceAccess.ApplySetpoint(host, device, i + 1, values[i], value: null, raw: null);
             }
 
             await device.FlushAsync(master, cancellationToken).ConfigureAwait(false);
@@ -98,12 +127,62 @@ public sealed class DetailModel(IModbusMaster master) : PageModel
             Online = master.IsConnected
         };
 
+        var host = configStore.Host;
         Channels = Enumerable.Range(1, device.ChannelCount)
-            .Select(ch => AnalogDeviceAccess.ToDto(device, ch))
+            .Select(ch => AnalogDeviceAccess.ToDto(host, device, ch))
             .ToArray();
+
+        ChannelConfigs = Channels.Select(ch => new ChannelConfigInput
+        {
+            Channel = ch.Channel,
+            Name = ch.Name,
+            Unit = ch.Unit,
+            ZeroVoltage = ch.ZeroVoltage,
+            SpanVoltage = ch.SpanVoltage,
+            ZeroMeasurand = ch.ZeroMeasurand,
+            SpanMeasurand = ch.SpanMeasurand
+        }).ToList();
+
         return true;
     }
 
-    private static string EngineeringLabel(IAnalogOutputDevice device) =>
-        device.EngineeringUnit == AnalogOutputEngineeringUnit.Volts ? "V" : "mA";
+    private void EnsureDeviceRegistration(IAnalogOutputDevice device)
+    {
+        var host = configStore.Host;
+        if (host.Devices.Any(d => d.UnitId == device.UnitId))
+        {
+            return;
+        }
+
+        var identity = device as IModbusDeviceIdentity;
+        host.Devices.Add(new ModbusDeviceRegistrationOptions
+        {
+            Type = identity?.DeviceType ?? device.GetType().Name,
+            UnitId = device.UnitId,
+            Name = device.Name,
+            Identifier = identity?.Identifier,
+            SerialNumber = identity?.SerialNumber,
+            Channels = []
+        });
+    }
+
+    public sealed class ChannelConfigInput
+    {
+        [Range(1, 255)]
+        public int Channel { get; set; }
+
+        [StringLength(128)]
+        public string? Name { get; set; }
+
+        [Required, StringLength(32)]
+        public string Unit { get; set; } = "V";
+
+        public double ZeroVoltage { get; set; }
+
+        public double SpanVoltage { get; set; } = 10;
+
+        public double ZeroMeasurand { get; set; }
+
+        public double SpanMeasurand { get; set; } = 10;
+    }
 }

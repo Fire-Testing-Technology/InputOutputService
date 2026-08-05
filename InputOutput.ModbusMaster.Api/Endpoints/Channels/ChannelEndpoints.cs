@@ -1,5 +1,7 @@
 using FastEndpoints;
 using InputOutput.ModbusMaster.Api.Models;
+using InputOutput.ModbusMaster.Hosting;
+using Microsoft.Extensions.Options;
 
 namespace InputOutput.ModbusMaster.Api.Endpoints.Channels;
 
@@ -15,7 +17,8 @@ public sealed class UnitChannelRequest
     public int Channel { get; set; }
 }
 
-public sealed class ListChannelsEndpoint(IModbusMaster master) : Endpoint<UnitIdRequest, IReadOnlyList<ChannelDto>>
+public sealed class ListChannelsEndpoint(IModbusMaster master, IOptions<ModbusRtuHostOptions> hostOptions)
+    : Endpoint<UnitIdRequest, IReadOnlyList<ChannelDto>>
 {
     public override void Configure()
     {
@@ -32,15 +35,17 @@ public sealed class ListChannelsEndpoint(IModbusMaster master) : Endpoint<UnitId
             return;
         }
 
+        var host = hostOptions.Value;
         var channels = Enumerable.Range(1, device.ChannelCount)
-            .Select(ch => AnalogDeviceAccess.ToDto(device, ch))
+            .Select(ch => AnalogDeviceAccess.ToDto(host, device, ch))
             .ToArray();
 
         await Send.OkAsync(channels, ct);
     }
 }
 
-public sealed class GetChannelEndpoint(IModbusMaster master) : Endpoint<UnitChannelRequest, ChannelDto>
+public sealed class GetChannelEndpoint(IModbusMaster master, IOptions<ModbusRtuHostOptions> hostOptions)
+    : Endpoint<UnitChannelRequest, ChannelDto>
 {
     public override void Configure()
     {
@@ -59,7 +64,7 @@ public sealed class GetChannelEndpoint(IModbusMaster master) : Endpoint<UnitChan
 
         try
         {
-            await Send.OkAsync(AnalogDeviceAccess.ToDto(device, req.Channel), ct);
+            await Send.OkAsync(AnalogDeviceAccess.ToDto(hostOptions.Value, device, req.Channel), ct);
         }
         catch (ArgumentOutOfRangeException ex)
         {
@@ -77,6 +82,10 @@ public sealed class SetChannelRequestDto
 
     public int Channel { get; set; }
 
+    /// <summary>Measurand setpoint (preferred). Converted via channel scaling.</summary>
+    public double? Measurand { get; set; }
+
+    /// <summary>Legacy electrical setpoint (V or mA).</summary>
     public double? Value { get; set; }
 
     public ushort? Raw { get; set; }
@@ -84,13 +93,14 @@ public sealed class SetChannelRequestDto
     public bool Flush { get; set; } = true;
 }
 
-public sealed class SetChannelEndpoint(IModbusMaster master) : Endpoint<SetChannelRequestDto, ChannelDto>
+public sealed class SetChannelEndpoint(IModbusMaster master, IOptions<ModbusRtuHostOptions> hostOptions)
+    : Endpoint<SetChannelRequestDto, ChannelDto>
 {
     public override void Configure()
     {
         Put("/api/units/{UnitId}/channels/{Channel}");
         AllowAnonymous();
-        Summary(s => s.Summary = "Set a single channel. Provide either value (engineering) or raw.");
+        Summary(s => s.Summary = "Set a single channel. Provide measurand (preferred), value (electrical), or raw.");
     }
 
     public override async Task HandleAsync(SetChannelRequestDto req, CancellationToken ct)
@@ -103,13 +113,19 @@ public sealed class SetChannelEndpoint(IModbusMaster master) : Endpoint<SetChann
 
         try
         {
-            AnalogDeviceAccess.ApplySetpoint(device, req.Channel, req.Value, req.Raw);
+            AnalogDeviceAccess.ApplySetpoint(
+                hostOptions.Value,
+                device,
+                req.Channel,
+                req.Measurand,
+                req.Value,
+                req.Raw);
             if (req.Flush)
             {
                 await device.FlushAsync(master, ct).ConfigureAwait(false);
             }
 
-            await Send.OkAsync(AnalogDeviceAccess.ToDto(device, req.Channel), ct);
+            await Send.OkAsync(AnalogDeviceAccess.ToDto(hostOptions.Value, device, req.Channel), ct);
         }
         catch (ArgumentOutOfRangeException ex)
         {
@@ -137,7 +153,8 @@ public sealed class SetChannelsRequestDto
     public bool Flush { get; set; } = true;
 }
 
-public sealed class SetChannelsEndpoint(IModbusMaster master) : Endpoint<SetChannelsRequestDto, IReadOnlyList<ChannelDto>>
+public sealed class SetChannelsEndpoint(IModbusMaster master, IOptions<ModbusRtuHostOptions> hostOptions)
+    : Endpoint<SetChannelsRequestDto, IReadOnlyList<ChannelDto>>
 {
     public override void Configure()
     {
@@ -165,9 +182,16 @@ public sealed class SetChannelsEndpoint(IModbusMaster master) : Endpoint<SetChan
 
         try
         {
+            var host = hostOptions.Value;
             foreach (var setpoint in req.Channels)
             {
-                AnalogDeviceAccess.ApplySetpoint(device, setpoint.Channel, setpoint.Value, setpoint.Raw);
+                AnalogDeviceAccess.ApplySetpoint(
+                    host,
+                    device,
+                    setpoint.Channel,
+                    setpoint.Measurand,
+                    setpoint.Value,
+                    setpoint.Raw);
             }
 
             if (req.Flush)
@@ -175,7 +199,9 @@ public sealed class SetChannelsEndpoint(IModbusMaster master) : Endpoint<SetChan
                 await device.FlushAsync(master, ct).ConfigureAwait(false);
             }
 
-            await Send.OkAsync(req.Channels.Select(s => AnalogDeviceAccess.ToDto(device, s.Channel)).ToArray(), ct);
+            await Send.OkAsync(
+                req.Channels.Select(s => AnalogDeviceAccess.ToDto(host, device, s.Channel)).ToArray(),
+                ct);
         }
         catch (ArgumentOutOfRangeException ex)
         {

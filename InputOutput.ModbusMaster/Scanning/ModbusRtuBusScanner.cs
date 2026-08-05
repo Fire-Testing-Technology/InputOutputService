@@ -183,18 +183,23 @@ public sealed class ModbusRtuBusScanner(
                 return null;
             }
 
-            var registered = false;
+            var registered = master.RegisteredUnitIds.Contains(unitId);
             if (hostOptions.RegisterDiscoveredDevices &&
                 detectedType is not ModbusDetectedDeviceTypes.Unknown &&
-                !master.RegisteredUnitIds.Contains(unitId))
+                !registered)
             {
-                var device = ModbusDeviceFactory.Create(new ModbusDeviceRegistrationOptions
+                var registration = new ModbusDeviceRegistrationOptions
                 {
                     Type = detectedType,
                     UnitId = unitId,
                     Name = $"{detectedType} @{unitId}"
-                });
-                master.Register(device);
+                };
+                master.Register(ModbusDeviceFactory.Create(registration));
+                if (hostOptions.Devices.All(d => d.UnitId != unitId))
+                {
+                    hostOptions.Devices.Add(registration);
+                }
+
                 registered = true;
             }
 

@@ -1,7 +1,9 @@
 @page "{unitId:int}"
 @model InputOutput.ModbusMaster.Api.Pages.Devices.DetailModel
+@using System.Globalization
 @{
     ViewData["Title"] = Model.Unit is null ? $"Unit {Model.UnitId}" : (Model.Unit.Name ?? $"Unit {Model.UnitId}");
+    string Fmt(double v) => v.ToString("0.###", CultureInfo.InvariantCulture);
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
@@ -38,27 +40,58 @@ else if (Model.Unit is not null)
     <div class="card shadow-sm mb-3">
         <div class="card-body">
             <h5 class="card-title">Channels</h5>
-            <div class="channel-grid">
+            <div class="channel-grid" data-unit-id="@Model.UnitId">
                 @foreach (var ch in Model.Channels)
                 {
-                    <div class="card channel-card" data-channel="@ch.Channel">
+                    var min = Math.Min(ch.ZeroMeasurand, ch.SpanMeasurand);
+                    var max = Math.Max(ch.ZeroMeasurand, ch.SpanMeasurand);
+                    <div class="card channel-card"
+                         data-channel="@ch.Channel"
+                         data-unit="@ch.Unit"
+                         data-min="@Fmt(min)"
+                         data-max="@Fmt(max)">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <strong>CH @ch.Channel</strong>
+                                <div>
+                                    <strong>@ch.Name</strong>
+                                    <div class="small text-muted">CH @ch.Channel</div>
+                                </div>
                                 @if (ch.Led is bool led)
                                 {
                                     <span class="badge @(led ? "text-bg-success" : "text-bg-secondary")">LED @(led ? "on" : "off")</span>
                                 }
                             </div>
-                            <div class="mb-1">
-                                <span class="value">@ch.Value.ToString("0.###")</span><span class="unit">@ch.Unit</span>
+
+                            <div class="channel-current mb-3">
+                                <span class="text-muted small d-block">Current</span>
+                                <span class="value channel-current-value">@Fmt(ch.Measurand)</span><span class="unit">@ch.Unit</span>
+                                <div class="small text-muted mt-1 channel-voltage-readout">@Fmt(ch.Voltage) @ch.ElectricalUnit</div>
                             </div>
-                            <div class="small text-muted mono mb-3">raw @ch.Raw</div>
-                            <form method="post" asp-page-handler="Set" class="d-flex gap-2">
-                                <input type="hidden" name="channel" value="@ch.Channel" />
-                                <input class="form-control form-control-sm" type="number" name="value" step="0.001" min="0" max="@(ch.Unit == "V" ? "10" : "20")" value="@ch.Value.ToString("0.###")" />
-                                <button class="btn btn-sm btn-primary" type="submit">Set</button>
-                            </form>
+
+                            <div class="mb-2">
+                                <label class="form-label small mb-1" for="value-@ch.Channel">Set (@ch.Unit)</label>
+                                <input id="value-@ch.Channel"
+                                       class="form-control form-control-sm channel-number"
+                                       type="number"
+                                       step="0.01"
+                                       min="@Fmt(min)"
+                                       max="@Fmt(max)"
+                                       value="@Fmt(ch.Measurand)" />
+                            </div>
+                            <div class="mb-1">
+                                <input class="form-range channel-slider"
+                                       type="range"
+                                       min="@Fmt(min)"
+                                       max="@Fmt(max)"
+                                       step="0.01"
+                                       value="@Fmt(ch.Measurand)"
+                                       aria-label="@ch.Name setpoint slider" />
+                                <div class="d-flex justify-content-between small text-muted">
+                                    <span>@Fmt(min)</span>
+                                    <span>@Fmt(max) @ch.Unit</span>
+                                </div>
+                            </div>
+                            <div class="channel-status small text-danger" aria-live="polite"></div>
                         </div>
                     </div>
                 }
@@ -66,7 +99,7 @@ else if (Model.Unit is not null)
         </div>
     </div>
 
-    <div class="card shadow-sm">
+    <div class="card shadow-sm mb-3">
         <div class="card-body">
             <h5 class="card-title">Set all</h5>
             <form method="post" asp-page-handler="SetAll">
@@ -74,15 +107,63 @@ else if (Model.Unit is not null)
                     @for (var i = 0; i < Model.Channels.Count; i++)
                     {
                         var ch = Model.Channels[i];
+                        var min = Math.Min(ch.ZeroMeasurand, ch.SpanMeasurand);
+                        var max = Math.Max(ch.ZeroMeasurand, ch.SpanMeasurand);
                         <div>
-                            <label class="form-label">CH @ch.Channel (@ch.Unit)</label>
-                            <input class="form-control" type="number" name="values[@i]" step="0.001" min="0" max="@(ch.Unit == "V" ? "10" : "20")" value="@ch.Value.ToString("0.###")" />
+                            <label class="form-label">@ch.Name (@ch.Unit)</label>
+                            <input class="form-control" type="number" name="values[@i]" step="0.01" min="@Fmt(min)" max="@Fmt(max)" value="@Fmt(ch.Measurand)" />
                         </div>
                     }
                 </div>
                 <button class="btn btn-primary" type="submit">Apply all</button>
             </form>
-            <div class="small text-muted mt-2">Values are written immediately to the device when connected.</div>
+            <div class="small text-muted mt-2">Values are measurands; they are scaled to voltage and written when connected.</div>
         </div>
     </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h5 class="card-title">Channel setup</h5>
+            <p class="text-muted small">Name, unit, and zero/span points for measurand ↔ voltage interpolation.</p>
+            <form method="post" asp-page-handler="SaveChannelConfig">
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                        <thead>
+                            <tr>
+                                <th>CH</th>
+                                <th>Name</th>
+                                <th>Unit</th>
+                                <th>Zero V</th>
+                                <th>Span V</th>
+                                <th>Zero meas.</th>
+                                <th>Span meas.</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (var i = 0; i < Model.ChannelConfigs.Count; i++)
+                            {
+                                <tr>
+                                    <td class="mono">
+                                        @Model.ChannelConfigs[i].Channel
+                                        <input type="hidden" asp-for="ChannelConfigs[i].Channel" />
+                                    </td>
+                                    <td><input class="form-control form-control-sm" asp-for="ChannelConfigs[i].Name" /></td>
+                                    <td><input class="form-control form-control-sm" asp-for="ChannelConfigs[i].Unit" /></td>
+                                    <td><input class="form-control form-control-sm" asp-for="ChannelConfigs[i].ZeroVoltage" type="number" step="0.001" /></td>
+                                    <td><input class="form-control form-control-sm" asp-for="ChannelConfigs[i].SpanVoltage" type="number" step="0.001" /></td>
+                                    <td><input class="form-control form-control-sm" asp-for="ChannelConfigs[i].ZeroMeasurand" type="number" step="0.001" /></td>
+                                    <td><input class="form-control form-control-sm" asp-for="ChannelConfigs[i].SpanMeasurand" type="number" step="0.001" /></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <button class="btn btn-primary" type="submit">Save channel setup</button>
+            </form>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script src="~/js/device-detail.js" asp-append-version="true"></script>
 }

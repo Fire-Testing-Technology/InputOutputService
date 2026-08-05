@@ -81,4 +81,27 @@ public sealed class ModbusDeviceRegistrationOptions
 
     /// <summary>Waveshare only: <c>Current0To20mA</c> or <c>Voltage0To10V</c>.</summary>
     public string? Mode { get; set; }
+
+    /// <summary>Optional per-channel name and measurand↔voltage scaling.</summary>
+    public List<ModbusChannelOptions> Channels { get; set; } = [];
+}
+
+/// <summary>One channel entry under <see cref="ModbusDeviceRegistrationOptions.Channels"/>.</summary>
+public sealed class ModbusChannelOptions
+{
+    /// <summary>1-based channel index on the device.</summary>
+    public int Channel { get; set; }
+
+    public string? Name { get; set; }
+
+    /// <summary>Measurand unit of measure (e.g. <c>°C</c>, <c>Pa</c>, <c>%</c>, <c>V</c>).</summary>
+    public string Unit { get; set; } = "V";
+
+    public double ZeroVoltage { get; set; }
+
+    public double SpanVoltage { get; set; } = 10;
+
+    public double ZeroMeasurand { get; set; }
+
+    public double SpanMeasurand { get; set; } = 10;
 }

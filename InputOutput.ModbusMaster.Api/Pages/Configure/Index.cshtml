@@ -43,11 +43,15 @@
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label" asp-for="Input.PortName">Port</label>
-                    <input class="form-control" asp-for="Input.PortName" />
+                    <select class="form-select" asp-for="Input.PortName" asp-items="Model.PortOptions"></select>
+                    @if (Model.PortOptions.Count == 0)
+                    {
+                        <div class="form-text text-warning">No serial ports detected on this PC.</div>
+                    }
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" asp-for="Input.BaudRate">Baud</label>
-                    <input class="form-control" asp-for="Input.BaudRate" type="number" />
+                    <select class="form-select" asp-for="Input.BaudRate" asp-items="Model.BaudRateOptions"></select>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" asp-for="Input.Parity">Parity</label>
