@@ -14,7 +14,6 @@ public sealed class ListUnitsEndpoint(IModbusMaster master) : EndpointWithoutReq
 
     public override Task HandleAsync(CancellationToken ct)
     {
-        var online = master.IsConnected;
         var units = master.RegisteredDevices
             .OrderBy(d => d.UnitId)
             .Select(d =>
@@ -27,7 +26,7 @@ public sealed class ListUnitsEndpoint(IModbusMaster master) : EndpointWithoutReq
                     Name = d.Name,
                     Identifier = identity?.Identifier,
                     SerialNumber = identity?.SerialNumber,
-                    Online = online
+                    Online = master.IsUnitOnline(d.UnitId)
                 };
             })
             .ToArray();

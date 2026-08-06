@@ -1,11 +1,14 @@
 using InputOutput.ModbusMaster.Devices.Sequent;
 using InputOutput.ModbusMaster.Devices.Waveshare;
+using Microsoft.Extensions.Logging;
 
 namespace InputOutput.ModbusMaster.Hosting;
 
 public static class ModbusDeviceFactory
 {
-    public static IModbusDevice Create(ModbusDeviceRegistrationOptions registration)
+    public static IModbusDevice Create(
+        ModbusDeviceRegistrationOptions registration,
+        ILoggerFactory? loggerFactory = null)
     {
         ArgumentNullException.ThrowIfNull(registration);
         if (string.IsNullOrWhiteSpace(registration.Type))
@@ -24,7 +27,8 @@ public static class ModbusDeviceFactory
                 registration.UnitId,
                 registration.Name,
                 registration.Identifier,
-                registration.SerialNumber),
+                registration.SerialNumber,
+                loggerFactory?.CreateLogger<Sequent16UOut>()),
 
             nameof(WaveshareAnalogOutput8Ch) or "8 Out" => new WaveshareAnalogOutput8Ch(
                 registration.UnitId,

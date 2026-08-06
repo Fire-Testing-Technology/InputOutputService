@@ -151,6 +151,21 @@
     color: var(--ftt-negative);
 }
 
+.scan-log .warn {
+    color: var(--ftt-warning);
+}
+
+.diag-log {
+    max-height: 70vh;
+}
+
+.diag-ex {
+    font-size: 0.75rem;
+    white-space: pre-wrap;
+    color: var(--ftt-fg-muted);
+    margin-left: 0.5rem;
+}
+
 .device-editor + .device-editor {
     margin-top: 1rem;
     padding-top: 1rem;

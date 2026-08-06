@@ -18,6 +18,15 @@ public interface IModbusMaster : IAsyncDisposable, IDisposable
     /// <summary>Currently registered devices (including identity metadata when implemented).</summary>
     IReadOnlyCollection<IModbusDevice> RegisteredDevices { get; }
 
+    /// <summary>
+    /// True when the RTU line is connected and this unit has recently responded
+    /// (successful poll or scan probe).
+    /// </summary>
+    bool IsUnitOnline(byte unitId);
+
+    /// <summary>Update per-unit reachability (e.g. after an RS-485 scan probe).</summary>
+    void SetUnitOnline(byte unitId, bool online);
+
     /// <summary>Register a device by unit address and poll callback.</summary>
     void Register(byte unitId, Func<IModbusDeviceChannel, CancellationToken, ValueTask> pollAsync, string? name = null);
 

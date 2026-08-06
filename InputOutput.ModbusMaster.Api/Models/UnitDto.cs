@@ -13,6 +13,6 @@ public sealed class UnitDto
 
     public string? SerialNumber { get; init; }
 
-    /// <summary>True when the unit is registered and the RTU master is connected.</summary>
+    /// <summary>True when the unit has recently responded on the bus (scan or poll).</summary>
     public bool Online { get; init; }
 }

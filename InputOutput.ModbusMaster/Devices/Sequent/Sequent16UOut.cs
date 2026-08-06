@@ -1,3 +1,6 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+
 namespace InputOutput.ModbusMaster.Devices.Sequent;
 
 /// <summary>
@@ -12,8 +15,14 @@ public sealed class Sequent16UOut : IModbusDevice, IModbusDeviceIdentity, IAnalo
     private readonly bool?[] _pendingLeds = new bool?[Sequent16UOutRegisters.LedCount];
     private readonly ushort[] _outputs = new ushort[Sequent16UOutRegisters.ChannelCount];
     private readonly bool[] _leds = new bool[Sequent16UOutRegisters.LedCount];
+    private readonly ILogger _logger;
 
-    public Sequent16UOut(byte unitId, string? name = null, string? identifier = null, string? serialNumber = null)
+    public Sequent16UOut(
+        byte unitId,
+        string? name = null,
+        string? identifier = null,
+        string? serialNumber = null,
+        ILogger<Sequent16UOut>? logger = null)
     {
         if (unitId == 0)
         {
@@ -24,6 +33,7 @@ public sealed class Sequent16UOut : IModbusDevice, IModbusDeviceIdentity, IAnalo
         Name = name ?? $"Sequent 16uout @{unitId}";
         Identifier = identifier;
         SerialNumber = serialNumber;
+        _logger = logger ?? NullLogger<Sequent16UOut>.Instance;
     }
 
     public byte UnitId { get; }
@@ -68,7 +78,7 @@ public sealed class Sequent16UOut : IModbusDevice, IModbusDeviceIdentity, IAnalo
     public event EventHandler? StateUpdated;
 
     /// <summary>Queue a raw register write for a 1-based channel (1–16), value in millivolts (0–10000).
-    /// Non-zero values also queue the matching LED on; zero queues it off.</summary>
+    /// LED turns off at 0 V and on only for the first non-zero after zero — not on every voltage change.</summary>
     public void SetChannelRaw(int channel, ushort milliVolts)
     {
         ValidateChannel(channel);
@@ -76,13 +86,15 @@ public sealed class Sequent16UOut : IModbusDevice, IModbusDeviceIdentity, IAnalo
 
         lock (_gate)
         {
-            _pendingOutputs[channel - 1] = milliVolts;
-            _pendingLeds[channel - 1] = milliVolts != 0;
+            var index = channel - 1;
+            var previous = _pendingOutputs[index] ?? _outputs[index];
+            _pendingOutputs[index] = milliVolts;
+            QueueLedForVoltageTransition(index, previous, milliVolts);
         }
     }
 
     /// <summary>Queue outputs for channels 1–N from a 0-based span of millivolt values.
-    /// Non-zero values also queue the matching LEDs on; zeros queue them off.</summary>
+    /// LED turns off at 0 V and on only for the first non-zero after zero — not on every voltage change.</summary>
     public void SetChannelsRaw(ReadOnlySpan<ushort> milliVolts)
     {
         if (milliVolts.Length is < 1 or > Sequent16UOutRegisters.ChannelCount)
@@ -99,9 +111,31 @@ public sealed class Sequent16UOut : IModbusDevice, IModbusDeviceIdentity, IAnalo
         {
             for (var i = 0; i < milliVolts.Length; i++)
             {
+                var previous = _pendingOutputs[i] ?? _outputs[i];
                 _pendingOutputs[i] = milliVolts[i];
-                _pendingLeds[i] = milliVolts[i] != 0;
+                QueueLedForVoltageTransition(i, previous, milliVolts[i]);
             }
+        }
+    }
+
+    /// <summary>
+    /// Queue an LED write only on 0↔non-zero transitions. Intermediate non-zero voltage changes leave the LED alone.
+    /// </summary>
+    private void QueueLedForVoltageTransition(int index, ushort previousMilliVolts, ushort nextMilliVolts)
+    {
+        if (nextMilliVolts == 0)
+        {
+            if (previousMilliVolts != 0 || _leds[index])
+            {
+                _pendingLeds[index] = false;
+            }
+
+            return;
+        }
+
+        if (previousMilliVolts == 0)
+        {
+            _pendingLeds[index] = true;
         }
     }
 
@@ -178,14 +212,30 @@ public sealed class Sequent16UOut : IModbusDevice, IModbusDeviceIdentity, IAnalo
             Sequent16UOutRegisters.VoltageOutput1,
             Sequent16UOutRegisters.ChannelCount);
 
-        var leds = channel.ReadCoils(
-            Sequent16UOutRegisters.Led1,
-            Sequent16UOutRegisters.LedCount);
-
         lock (_gate)
         {
             Array.Copy(outputs, _outputs, Sequent16UOutRegisters.ChannelCount);
-            Array.Copy(leds, _leds, Sequent16UOutRegisters.LedCount);
+        }
+
+        try
+        {
+            var leds = channel.ReadCoils(
+                Sequent16UOutRegisters.Led1,
+                Sequent16UOutRegisters.LedCount);
+
+            lock (_gate)
+            {
+                Array.Copy(leds, _leds, Sequent16UOutRegisters.LedCount);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Sequent unit {UnitId} failed to read LED coils 0x{Coil:X2}–{Count}.",
+                UnitId,
+                Sequent16UOutRegisters.Led1,
+                Sequent16UOutRegisters.LedCount);
         }
     }
 
@@ -218,6 +268,14 @@ public sealed class Sequent16UOut : IModbusDevice, IModbusDeviceIdentity, IAnalo
             }
 
             channel.WriteMultipleRegisters(Sequent16UOutRegisters.VoltageOutput1 + first, block);
+            lock (_gate)
+            {
+                for (var i = 0; i < block.Length; i++)
+                {
+                    _outputs[first + i] = block[i];
+                }
+            }
+
             return;
         }
 
@@ -226,6 +284,10 @@ public sealed class Sequent16UOut : IModbusDevice, IModbusDeviceIdentity, IAnalo
             if (snapshot[i] is { } value)
             {
                 channel.WriteSingleRegister(Sequent16UOutRegisters.VoltageOutput1 + i, value);
+                lock (_gate)
+                {
+                    _outputs[i] = value;
+                }
             }
         }
     }
@@ -244,23 +306,33 @@ public sealed class Sequent16UOut : IModbusDevice, IModbusDeviceIdentity, IAnalo
             return;
         }
 
-        if (IsContiguous(snapshot, first, last) && last > first)
-        {
-            var block = new bool[last - first + 1];
-            for (var i = 0; i < block.Length; i++)
-            {
-                block[i] = snapshot[first + i]!.Value;
-            }
-
-            channel.WriteMultipleCoils(Sequent16UOutRegisters.Led1 + first, block);
-            return;
-        }
-
+        // Prefer single-coil writes: some Sequent firmware is unreliable with WriteMultipleCoils.
         for (var i = first; i <= last; i++)
         {
-            if (snapshot[i] is { } value)
+            if (snapshot[i] is not { } value)
             {
-                channel.WriteSingleCoil(Sequent16UOutRegisters.Led1 + i, value);
+                continue;
+            }
+
+            var led = i + 1;
+            var coil = Sequent16UOutRegisters.Led1 + i;
+            try
+            {
+                channel.WriteSingleCoil(coil, value);
+                lock (_gate)
+                {
+                    _leds[i] = value;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Sequent unit {UnitId} failed to set LED {Led} coil 0x{Coil:X2} to {State}.",
+                    UnitId,
+                    led,
+                    coil,
+                    value ? "on" : "off");
             }
         }
     }

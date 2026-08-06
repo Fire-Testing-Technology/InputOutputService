@@ -11,7 +11,6 @@ public sealed class IndexModel(IModbusMaster master) : PageModel
 
     public void OnGet()
     {
-        var online = master.IsConnected;
         Units = master.RegisteredDevices
             .OrderBy(d => d.UnitId)
             .Select(d =>
@@ -24,7 +23,7 @@ public sealed class IndexModel(IModbusMaster master) : PageModel
                     Name = d.Name,
                     Identifier = identity?.Identifier,
                     SerialNumber = identity?.SerialNumber,
-                    Online = online
+                    Online = master.IsUnitOnline(d.UnitId)
                 };
             })
             .ToArray();

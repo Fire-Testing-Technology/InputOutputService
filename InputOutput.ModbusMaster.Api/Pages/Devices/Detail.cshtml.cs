@@ -124,7 +124,7 @@ public sealed class DetailModel(IModbusMaster master, ModbusConfigStore configSt
             Name = device.Name,
             Identifier = identity?.Identifier,
             SerialNumber = identity?.SerialNumber,
-            Online = master.IsConnected
+            Online = master.IsUnitOnline(device.UnitId)
         };
 
         var host = configStore.Host;

@@ -13,6 +13,7 @@ public sealed class ModbusRtuMasterHostedService(
     IModbusMaster master,
     IModbusBusScanner scanner,
     IOptions<ModbusRtuHostOptions> options,
+    ILoggerFactory loggerFactory,
     ILogger<ModbusRtuMasterHostedService> logger) : IHostedService
 {
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -20,7 +21,7 @@ public sealed class ModbusRtuMasterHostedService(
         var hostOptions = options.Value;
         foreach (var registration in hostOptions.Devices)
         {
-            var device = ModbusDeviceFactory.Create(registration);
+            var device = ModbusDeviceFactory.Create(registration, loggerFactory);
             master.Register(device);
             logger.LogInformation(
                 "Registered {Type} at unit {UnitId} ({Name}).",

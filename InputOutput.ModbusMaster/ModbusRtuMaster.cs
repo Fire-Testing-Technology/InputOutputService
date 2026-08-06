@@ -14,6 +14,7 @@ public sealed class ModbusRtuMaster : IModbusMaster
     private readonly ModbusRtuMasterOptions _options;
     private readonly ILogger _logger;
     private readonly ConcurrentDictionary<byte, IModbusDevice> _devices = new();
+    private readonly ConcurrentDictionary<byte, bool> _unitOnline = new();
     private readonly SemaphoreSlim _busLock = new(1, 1);
     private readonly object _lifecycleLock = new();
 
@@ -48,6 +49,11 @@ public sealed class ModbusRtuMaster : IModbusMaster
 
     public IReadOnlyCollection<IModbusDevice> RegisteredDevices => _devices.Values.ToArray();
 
+    public bool IsUnitOnline(byte unitId) =>
+        IsConnected && _unitOnline.TryGetValue(unitId, out var online) && online;
+
+    public void SetUnitOnline(byte unitId, bool online) => _unitOnline[unitId] = online;
+
     public void Register(byte unitId, Func<IModbusDeviceChannel, CancellationToken, ValueTask> pollAsync, string? name = null)
     {
         ArgumentNullException.ThrowIfNull(pollAsync);
@@ -64,6 +70,7 @@ public sealed class ModbusRtuMaster : IModbusMaster
             throw new InvalidOperationException($"A device with unit id {device.UnitId} is already registered.");
         }
 
+        _unitOnline[device.UnitId] = false;
         _logger.LogInformation("Registered Modbus device unit {UnitId} ({Name}).", device.UnitId, device.Name ?? "unnamed");
     }
 
@@ -73,6 +80,7 @@ public sealed class ModbusRtuMaster : IModbusMaster
         var removed = _devices.TryRemove(unitId, out var device);
         if (removed)
         {
+            _unitOnline.TryRemove(unitId, out _);
             _logger.LogInformation("Unregistered Modbus device unit {UnitId} ({Name}).", unitId, device?.Name ?? "unnamed");
         }
 
@@ -137,6 +145,11 @@ public sealed class ModbusRtuMaster : IModbusMaster
             {
                 _client.Dispose();
                 _client = null;
+                foreach (var unitId in _unitOnline.Keys.ToArray())
+                {
+                    _unitOnline[unitId] = false;
+                }
+
                 _logger.LogInformation("Modbus RTU master disconnected.");
             }
         }
@@ -218,7 +231,7 @@ public sealed class ModbusRtuMaster : IModbusMaster
         await _busLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            var channel = new ModbusDeviceChannel(client, unitId);
+            var channel = new ModbusDeviceChannel(client, unitId, _logger);
             await action(channel, cancellationToken).ConfigureAwait(false);
         }
         finally
@@ -249,9 +262,10 @@ public sealed class ModbusRtuMaster : IModbusMaster
                 var stopwatch = Stopwatch.StartNew();
                 try
                 {
-                    var channel = new ModbusDeviceChannel(client, device.UnitId);
+                    var channel = new ModbusDeviceChannel(client, device.UnitId, _logger);
                     await device.PollAsync(channel, cancellationToken).ConfigureAwait(false);
                     stopwatch.Stop();
+                    _unitOnline[device.UnitId] = true;
                     DevicePolled?.Invoke(this, new ModbusDevicePolledEventArgs(device.UnitId, device.Name, stopwatch.Elapsed));
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -261,6 +275,7 @@ public sealed class ModbusRtuMaster : IModbusMaster
                 catch (Exception ex)
                 {
                     stopwatch.Stop();
+                    _unitOnline[device.UnitId] = false;
                     _logger.LogWarning(ex, "Poll failed for unit {UnitId} ({Name}).", device.UnitId, device.Name ?? "unnamed");
                     DevicePollFailed?.Invoke(this, new ModbusDevicePollFailedEventArgs(device.UnitId, device.Name, ex));
                 }
@@ -317,6 +332,11 @@ public sealed class ModbusRtuMaster : IModbusMaster
                     _client.Dispose();
                     _client = null;
                 }
+            }
+
+            foreach (var unitId in _unitOnline.Keys.ToArray())
+            {
+                _unitOnline[unitId] = false;
             }
         }
 

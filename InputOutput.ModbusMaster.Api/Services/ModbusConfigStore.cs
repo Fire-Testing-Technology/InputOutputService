@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using InputOutput.ModbusMaster.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace InputOutput.ModbusMaster.Api.Services;
@@ -12,7 +13,8 @@ namespace InputOutput.ModbusMaster.Api.Services;
 public sealed class ModbusConfigStore(
     IWebHostEnvironment environment,
     IOptions<ModbusRtuHostOptions> hostOptions,
-    IModbusMaster master)
+    IModbusMaster master,
+    ILoggerFactory loggerFactory)
 {
     private static readonly JsonSerializerOptions WriteJson = new()
     {
@@ -56,7 +58,7 @@ public sealed class ModbusConfigStore(
                 master.Unregister(registration.UnitId);
             }
 
-            master.Register(ModbusDeviceFactory.Create(registration));
+            master.Register(ModbusDeviceFactory.Create(registration, loggerFactory));
         }
     }
 

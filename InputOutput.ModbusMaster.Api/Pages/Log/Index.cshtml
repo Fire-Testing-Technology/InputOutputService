@@ -1,0 +1,51 @@
+@page
+@model InputOutput.ModbusMaster.Api.Pages.Log.IndexModel
+@{
+    ViewData["Title"] = "Log";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h1 class="mb-1">Diagnostic log</h1>
+        <div class="text-muted">Recent application messages, including Modbus / Sequent LED errors.</div>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <button type="button" class="btn btn-outline-secondary" onclick="location.reload()">Refresh</button>
+        <form method="post" asp-page-handler="Clear">
+            <button class="btn btn-outline-danger" type="submit">Clear</button>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        @if (Model.Entries.Count == 0)
+        {
+            <div class="text-muted">No log entries yet.</div>
+        }
+        else
+        {
+            <div id="diag-log" class="scan-log diag-log">
+                @foreach (var entry in Model.Entries)
+                {
+                    var cls = entry.Level switch
+                    {
+                        LogLevel.Error or LogLevel.Critical => "error",
+                        LogLevel.Warning => "warn",
+                        _ => null
+                    };
+                    <div class="@(cls)">
+                        <span class="text-muted">[@entry.Timestamp.ToString("HH:mm:ss.fff")]</span>
+                        <span class="badge text-bg-secondary">@entry.Level</span>
+                        <span class="mono">@entry.Category</span>
+                        — @entry.Message
+                        @if (!string.IsNullOrWhiteSpace(entry.Exception))
+                        {
+                            <pre class="diag-ex mb-0 mt-1">@entry.Exception</pre>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>

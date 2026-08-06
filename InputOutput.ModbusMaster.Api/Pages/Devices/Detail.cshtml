@@ -4,6 +4,14 @@
 @{
     ViewData["Title"] = Model.Unit is null ? $"Unit {Model.UnitId}" : (Model.Unit.Name ?? $"Unit {Model.UnitId}");
     string Fmt(double v) => v.ToString("0.###", CultureInfo.InvariantCulture);
+    // One step = 1 mV at the electrical output, expressed in measurand units.
+    string StepFor(ChannelDto ch)
+    {
+        var voltageSpan = Math.Abs(ch.SpanVoltage - ch.ZeroVoltage);
+        var measurandSpan = Math.Abs(ch.SpanMeasurand - ch.ZeroMeasurand);
+        var step = voltageSpan < 1e-12 ? 0.001 : measurandSpan / voltageSpan * 0.001;
+        return step.ToString("0.############", CultureInfo.InvariantCulture);
+    }
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
@@ -45,11 +53,13 @@ else if (Model.Unit is not null)
                 {
                     var min = Math.Min(ch.ZeroMeasurand, ch.SpanMeasurand);
                     var max = Math.Max(ch.ZeroMeasurand, ch.SpanMeasurand);
+                    var step = StepFor(ch);
                     <div class="card channel-card"
                          data-channel="@ch.Channel"
                          data-unit="@ch.Unit"
                          data-min="@Fmt(min)"
-                         data-max="@Fmt(max)">
+                         data-max="@Fmt(max)"
+                         data-step="@step">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <div>
@@ -58,7 +68,7 @@ else if (Model.Unit is not null)
                                 </div>
                                 @if (ch.Led is bool led)
                                 {
-                                    <span class="badge @(led ? "text-bg-success" : "text-bg-secondary")">LED @(led ? "on" : "off")</span>
+                                    <span class="badge channel-led @(led ? "text-bg-success" : "text-bg-secondary")" data-led="@(led ? "on" : "off")">LED @(led ? "on" : "off")</span>
                                 }
                             </div>
 
@@ -73,7 +83,8 @@ else if (Model.Unit is not null)
                                 <input id="value-@ch.Channel"
                                        class="form-control form-control-sm channel-number"
                                        type="number"
-                                       step="0.01"
+                                       inputmode="decimal"
+                                       step="@step"
                                        min="@Fmt(min)"
                                        max="@Fmt(max)"
                                        value="@Fmt(ch.Measurand)" />
@@ -83,7 +94,7 @@ else if (Model.Unit is not null)
                                        type="range"
                                        min="@Fmt(min)"
                                        max="@Fmt(max)"
-                                       step="0.01"
+                                       step="@step"
                                        value="@Fmt(ch.Measurand)"
                                        aria-label="@ch.Name setpoint slider" />
                                 <div class="d-flex justify-content-between small text-muted">
@@ -109,9 +120,10 @@ else if (Model.Unit is not null)
                         var ch = Model.Channels[i];
                         var min = Math.Min(ch.ZeroMeasurand, ch.SpanMeasurand);
                         var max = Math.Max(ch.ZeroMeasurand, ch.SpanMeasurand);
+                        var step = StepFor(ch);
                         <div>
                             <label class="form-label">@ch.Name (@ch.Unit)</label>
-                            <input class="form-control" type="number" name="values[@i]" step="0.01" min="@Fmt(min)" max="@Fmt(max)" value="@Fmt(ch.Measurand)" />
+                            <input class="form-control" type="number" inputmode="decimal" name="values[@i]" step="@step" min="@Fmt(min)" max="@Fmt(max)" value="@Fmt(ch.Measurand)" />
                         </div>
                     }
                 </div>

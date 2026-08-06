@@ -16,6 +16,7 @@ namespace InputOutput.ModbusMaster.Scanning;
 public sealed class ModbusRtuBusScanner(
     IModbusMaster master,
     IOptions<ModbusRtuHostOptions> options,
+    ILoggerFactory loggerFactory,
     ILogger<ModbusRtuBusScanner> logger) : IModbusBusScanner
 {
     private readonly SemaphoreSlim _scanGate = new(1, 1);
@@ -103,12 +104,21 @@ public sealed class ModbusRtuBusScanner(
                 if (unit is not null)
                 {
                     discovered.Add(unit);
+                    if (master.RegisteredUnitIds.Contains((byte)unitId))
+                    {
+                        master.SetUnitOnline((byte)unitId, true);
+                    }
+
                     logger.LogInformation(
                         "Discovered unit {UnitId} as {Type} ({Detail}).",
                         unit.UnitId,
                         unit.DetectedType,
                         unit.Detail ?? "no detail");
                     yield return new ModbusScanDiscoveredEvent(unit);
+                }
+                else if (master.RegisteredUnitIds.Contains((byte)unitId))
+                {
+                    master.SetUnitOnline((byte)unitId, false);
                 }
 
                 if (hostOptions.ScanInterProbeDelay > TimeSpan.Zero && unitId < to)
@@ -194,13 +204,19 @@ public sealed class ModbusRtuBusScanner(
                     UnitId = unitId,
                     Name = $"{detectedType} @{unitId}"
                 };
-                master.Register(ModbusDeviceFactory.Create(registration));
+                master.Register(ModbusDeviceFactory.Create(registration, loggerFactory));
                 if (hostOptions.Devices.All(d => d.UnitId != unitId))
                 {
                     hostOptions.Devices.Add(registration);
                 }
 
                 registered = true;
+            }
+
+            if (registered)
+            {
+                master.SetUnitOnline(unitId, true);
+                await SyncRegisteredDeviceAfterScanAsync(unitId, cancellationToken).ConfigureAwait(false);
             }
 
             return new ModbusDiscoveredUnit
@@ -231,6 +247,54 @@ public sealed class ModbusRtuBusScanner(
         {
             logger.LogDebug(ex, "Probe of unit {UnitId} failed; treating as absent.", unitId);
             return null;
+        }
+    }
+
+    /// <summary>
+    /// Read current outputs/LEDs, then force all channels to 0 V (and Sequent LEDs off).
+    /// </summary>
+    private async Task SyncRegisteredDeviceAfterScanAsync(byte unitId, CancellationToken cancellationToken)
+    {
+        var device = master.RegisteredDevices.FirstOrDefault(d => d.UnitId == unitId);
+        if (device is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await master.ExecuteAsync(
+                    unitId,
+                    (channel, ct) => device.PollAsync(channel, ct),
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+            if (device is IAnalogOutputDevice analog)
+            {
+                for (var channel = 1; channel <= analog.ChannelCount; channel++)
+                {
+                    analog.SetChannelValue(channel, 0);
+                }
+
+                if (device is Sequent16UOut sequent)
+                {
+                    for (var led = 1; led <= sequent.ChannelCount; led++)
+                    {
+                        sequent.SetLed(led, false);
+                    }
+                }
+
+                await analog.FlushAsync(master, cancellationToken).ConfigureAwait(false);
+            }
+
+            logger.LogInformation(
+                "Read back then zeroed outputs{LedNote} for registered unit {UnitId} after scan.",
+                device is Sequent16UOut ? " and LEDs" : "",
+                unitId);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to sync outputs for unit {UnitId} after scan.", unitId);
         }
     }
 

@@ -52,6 +52,8 @@ builder.Services
 builder.Services.AddModbusRtuMaster(builder.Configuration);
 builder.Services.AddSingleton<ModbusConfigStore>();
 builder.Services.AddSingleton<ScanProgressService>();
+builder.Services.AddSingleton<DiagnosticLogService>();
+builder.Services.AddSingleton<ILoggerProvider, DiagnosticLoggerProvider>();
 
 if (OperatingSystem.IsWindows())
 {
