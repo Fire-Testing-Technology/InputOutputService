@@ -1,0 +1,96 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Local: ModbusMaster.Api (https)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/InputOutput.ModbusMaster.Api/bin/Debug/net10.0/InputOutput.ModbusMaster.Api.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/InputOutput.ModbusMaster.Api",
+      "stopAtEntry": false,
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
+        "uriFormat": "%s/Devices"
+      },
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "https://localhost:7015;http://localhost:5217"
+      }
+    },
+    {
+      "name": "Local: ModbusMaster.Api (http)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/InputOutput.ModbusMaster.Api/bin/Debug/net10.0/InputOutput.ModbusMaster.Api.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/InputOutput.ModbusMaster.Api",
+      "stopAtEntry": false,
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
+        "uriFormat": "%s/Devices"
+      },
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "http://localhost:5217"
+      }
+    },
+    {
+      "name": "Pi: ModbusMaster.Api (remote)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "deploy-pi-debug",
+      "program": "/home/pi/modbus-debug/InputOutput.ModbusMaster.Api.dll",
+      "args": [],
+      "cwd": "/home/pi/modbus-debug",
+      "stopAtEntry": false,
+      "console": "internalConsole",
+      "pipeTransport": {
+        "pipeCwd": "${workspaceFolder}",
+        "pipeProgram": "ssh",
+        "pipeArgs": [
+          "-T",
+          "-o",
+          "BatchMode=yes",
+          "pi@192.168.1.64"
+        ],
+        "debuggerPath": "/home/pi/vsdbg/vsdbg",
+        "quoteArgs": false
+      },
+      "env": {
+        "DOTNET_ROOT": "/home/pi/.dotnet",
+        "PATH": "/home/pi/.dotnet:/home/pi/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "http://0.0.0.0:5217"
+      },
+      "sourceFileMap": {
+        "/home/pi/modbus-debug": "${workspaceFolder}/InputOutput.ModbusMaster.Api"
+      }
+    },
+    {
+      "name": "Pi: Attach (remote)",
+      "type": "coreclr",
+      "request": "attach",
+      "processId": "${command:pickRemoteProcess}",
+      "pipeTransport": {
+        "pipeCwd": "${workspaceFolder}",
+        "pipeProgram": "ssh",
+        "pipeArgs": [
+          "-T",
+          "-o",
+          "BatchMode=yes",
+          "pi@192.168.1.64"
+        ],
+        "debuggerPath": "/home/pi/vsdbg/vsdbg",
+        "quoteArgs": false
+      },
+      "sourceFileMap": {
+        "/home/pi/modbus-debug": "${workspaceFolder}/InputOutput.ModbusMaster.Api"
+      }
+    }
+  ]
+}

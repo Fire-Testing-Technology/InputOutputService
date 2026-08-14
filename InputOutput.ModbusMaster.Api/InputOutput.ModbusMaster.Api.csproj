@@ -9,6 +9,9 @@
     <NoWarn>$(NoWarn);1591</NoWarn>
     <Product>FTT Input Output</Product>
     <Company>FTT</Company>
+    <!-- Portable PDBs required for Visual Studio remote debug attach over SSH -->
+    <DebugType>portable</DebugType>
+    <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

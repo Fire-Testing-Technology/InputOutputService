@@ -1,0 +1,51 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build",
+      "command": "dotnet",
+      "type": "process",
+      "args": [
+        "build",
+        "${workspaceFolder}/InputOutput.ModbusMaster.Api/InputOutput.ModbusMaster.Api.csproj",
+        "/property:GenerateFullPaths=true",
+        "/consoleloggerparameters:NoSummary;ForceNoColor"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "publish-pi-debug",
+      "command": "dotnet",
+      "type": "process",
+      "args": [
+        "publish",
+        "${workspaceFolder}/InputOutput.ModbusMaster.Api/InputOutput.ModbusMaster.Api.csproj",
+        "-c",
+        "Debug",
+        "-r",
+        "linux-arm64",
+        "--self-contained",
+        "false",
+        "-o",
+        "${workspaceFolder}/.debug/pi"
+      ],
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "deploy-pi-debug",
+      "dependsOn": "publish-pi-debug",
+      "type": "shell",
+      "command": "ssh -o BatchMode=yes pi@192.168.1.64 \"pkill -f InputOutput.ModbusMaster.Api || true; mkdir -p /home/pi/modbus-debug\"; scp -o BatchMode=yes -r \"${workspaceFolder}/.debug/pi/.\" pi@192.168.1.64:/home/pi/modbus-debug/; ssh -o BatchMode=yes pi@192.168.1.64 \"chmod +x /home/pi/modbus-debug/InputOutput.ModbusMaster.Api\"",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "silent",
+        "panel": "shared",
+        "showReuseMessage": false
+      }
+    }
+  ]
+}
