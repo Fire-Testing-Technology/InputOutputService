@@ -82,6 +82,12 @@ public sealed class ModbusDeviceRegistrationOptions
     /// <summary>Waveshare only: <c>Current0To20mA</c> or <c>Voltage0To10V</c>.</summary>
     public string? Mode { get; set; }
 
+    /// <summary>
+    /// Lowest voltage (0–10 V) this module can reliably output. Voltage setpoints below it are raised to it and the
+    /// UI offers nothing lower. 0 (the default) means no minimum. Ignored for current outputs.
+    /// </summary>
+    public double MinVolts { get; set; }
+
     /// <summary>Optional per-channel name and measurand↔voltage scaling.</summary>
     public List<ModbusChannelOptions> Channels { get; set; } = [];
 }

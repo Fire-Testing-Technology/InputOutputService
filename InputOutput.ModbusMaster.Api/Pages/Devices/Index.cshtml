@@ -15,6 +15,18 @@
     </div>
 </div>
 
+@if (!Model.PortAvailable)
+{
+    <div class="alert alert-warning" role="alert">
+        <strong>Serial port <span class="mono">@Model.PortName</span> is not available on this machine.</strong>
+        @(Model.IsConnected
+            ? "It was connected but is no longer present."
+            : "The service cannot talk to the devices until it is present.")
+        Available ports: <span class="mono">@(Model.AvailablePorts.Count == 0 ? "none" : string.Join(", ", Model.AvailablePorts))</span>.
+        <a class="alert-link" asp-page="/Configure/Index">Change the port</a>
+    </div>
+}
+
 @if (Model.Units.Count == 0)
 {
     <div class="alert alert-secondary">No devices registered yet. Run a scan or add units under Configure.</div>

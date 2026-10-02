@@ -36,6 +36,17 @@ public sealed class ModbusRtuMasterHostedService(
             return;
         }
 
+        var availablePorts = SerialPortAvailability.GetAvailablePorts();
+        if (!SerialPortAvailability.IsAvailable(hostOptions.PortName, availablePorts))
+        {
+            logger.LogError(
+                "Configured serial port {Port} is not available on this machine (available: {Available}). "
+                + "Skipping Connect/Scan/StartPolling; units remain listed. Check the cabling/adapter or change the port on the Configure page.",
+                hostOptions.PortName,
+                availablePorts.Count == 0 ? "none" : string.Join(", ", availablePorts));
+            return;
+        }
+
         try
         {
             master.Connect();

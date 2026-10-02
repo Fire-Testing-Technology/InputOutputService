@@ -186,7 +186,7 @@ public sealed class IndexModel(IModbusMaster master, ModbusConfigStore configSto
     private void LoadPortOptions()
     {
         var ports = SerialPort.GetPortNames()
-            .OrderBy(p => p, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(p => p, NaturalStringComparer.Instance)
             .ToArray();
         var items = ports.Select(p => new SelectListItem(p, p)).ToList();
 
@@ -238,7 +238,8 @@ public sealed class IndexModel(IModbusMaster master, ModbusConfigStore configSto
                 Name = d.Name,
                 Identifier = d.Identifier,
                 SerialNumber = d.SerialNumber,
-                Mode = d.Mode ?? "Voltage0To10V"
+                Mode = d.Mode ?? "Voltage0To10V",
+                MinVolts = d.MinVolts
             }).ToList()
         };
     }
@@ -280,6 +281,7 @@ public sealed class IndexModel(IModbusMaster master, ModbusConfigStore configSto
             Mode = d.Type is "8 Out" or "WaveshareAnalogOutput8Ch"
                 ? d.Mode
                 : null,
+            MinVolts = d.MinVolts,
             Channels = existingChannels.TryGetValue(d.UnitId, out var channels) ? channels : []
         }).ToList();
     }
@@ -349,5 +351,9 @@ public sealed class IndexModel(IModbusMaster master, ModbusConfigStore configSto
         public string? SerialNumber { get; set; }
 
         public string? Mode { get; set; } = "Voltage0To10V";
+
+        /// <summary>Lowest voltage the module can reliably output; 0 = no minimum. Voltage outputs only.</summary>
+        [Range(0, 10)]
+        public double MinVolts { get; set; }
     }
 }
