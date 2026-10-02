@@ -31,6 +31,15 @@ public sealed class ChannelDto
 
     public double SpanMeasurand { get; init; }
 
+    /// <summary>The device's configured minimum output voltage in volts (0 = none). Lower setpoints are raised to it.</summary>
+    public double MinVoltage { get; init; }
+
+    /// <summary>Lowest measurand setpoint that is at or above <see cref="MinVoltage"/>.</summary>
+    public double MinMeasurand { get; init; }
+
+    /// <summary>Highest measurand setpoint the scale allows.</summary>
+    public double MaxMeasurand { get; init; }
+
     /// <summary>Sequent LED state when applicable.</summary>
     public bool? Led { get; init; }
 }

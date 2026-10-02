@@ -51,8 +51,8 @@ else if (Model.Unit is not null)
             <div class="channel-grid" data-unit-id="@Model.UnitId">
                 @foreach (var ch in Model.Channels)
                 {
-                    var min = Math.Min(ch.ZeroMeasurand, ch.SpanMeasurand);
-                    var max = Math.Max(ch.ZeroMeasurand, ch.SpanMeasurand);
+                    var min = ch.MinMeasurand;
+                    var max = ch.MaxMeasurand;
                     var step = StepFor(ch);
                     <div class="card channel-card"
                          data-channel="@ch.Channel"
@@ -101,6 +101,10 @@ else if (Model.Unit is not null)
                                     <span>@Fmt(min)</span>
                                     <span>@Fmt(max) @ch.Unit</span>
                                 </div>
+                                @if (ch.MinVoltage > 0)
+                                {
+                                    <div class="small text-muted channel-min-hint">Module minimum @Fmt(ch.MinVoltage) V — lower setpoints are raised to it.</div>
+                                }
                             </div>
                             <div class="channel-status small text-danger" aria-live="polite"></div>
                         </div>
@@ -118,8 +122,8 @@ else if (Model.Unit is not null)
                     @for (var i = 0; i < Model.Channels.Count; i++)
                     {
                         var ch = Model.Channels[i];
-                        var min = Math.Min(ch.ZeroMeasurand, ch.SpanMeasurand);
-                        var max = Math.Max(ch.ZeroMeasurand, ch.SpanMeasurand);
+                        var min = ch.MinMeasurand;
+                        var max = ch.MaxMeasurand;
                         var step = StepFor(ch);
                         <div>
                             <label class="form-label">@ch.Name (@ch.Unit)</label>
